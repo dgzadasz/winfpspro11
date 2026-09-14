@@ -8,6 +8,9 @@ const plans = {
   weekly: { name: "Weekly Pass", duration: "7 dias de acesso", price: "R$ 40,00" },
   monthly: { name: "Monthly Pass", duration: "30 dias de acesso", price: "R$ 120,00" },
   lifetime: { name: "Lifetime", duration: "Acesso vitalício", price: "R$ 300,00" },
+  sensiNormal: { name: "Pack Sensi Normal", duration: "Presets Android e iPhone", price: "R$ 19,90" },
+  sensiPremium: { name: "Pack Sensi Premium", duration: "Presets exclusivos + IA", price: "R$ 39,90" },
+  sensiEmulator: { name: "Pack Sensi Emulador", duration: "Configuração para PC", price: "R$ 29,90" },
 } as const;
 
 type PlanKey = keyof typeof plans;

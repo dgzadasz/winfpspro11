@@ -10,6 +10,9 @@ export const PLANS = {
   weekly: { name: "Weekly Pass", duration: "7 dias de acesso", amountCents: 4000, days: 7 },
   monthly: { name: "Monthly Pass", duration: "30 dias de acesso", amountCents: 12000, days: 30 },
   lifetime: { name: "Lifetime", duration: "Acesso vitalício", amountCents: 30000, days: 0 },
+  sensiNormal: { name: "Pack Sensi Normal", duration: "Android e iPhone", amountCents: 1990, days: 0 },
+  sensiPremium: { name: "Pack Sensi Premium", duration: "Presets exclusivos + IA", amountCents: 3990, days: 0 },
+  sensiEmulator: { name: "Pack Sensi Emulador", duration: "Configuração para PC", amountCents: 2990, days: 0 },
 } as const;
 
 export type PlanKey = keyof typeof PLANS;

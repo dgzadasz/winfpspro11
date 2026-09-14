@@ -2,11 +2,14 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import path from "path";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { registerDiscordInteractionRoute, registerDiscordRoutes, getDiscordUser } from "../discord";
 import { createOrder, getOrdersForUser, PLANS } from "../orders";
+import { PACK_FILES, hasApprovedPack, hasApprovedPremium, isPackKey } from "../packs";
+import { recommendSensitivity } from "../sensi-ai";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -36,6 +39,22 @@ async function startServer() {
     if (!(plan in PLANS)) return res.status(400).json({ error: "invalid_plan" });
     try { return res.status(201).json({ order: await createOrder(user, plan as keyof typeof PLANS) }); }
     catch (error) { console.error("[Orders] create failed", error); return res.status(503).json({ error: "orders_unavailable" }); }
+  });
+  app.get("/api/packs/:pack/download", async (req, res) => {
+    const user = getDiscordUser(req);
+    const pack = req.params.pack;
+    if (!user) return res.status(401).json({ error: "discord_login_required" });
+    if (!isPackKey(pack) || !(await hasApprovedPack(user.id, pack))) return res.status(403).json({ error: "pack_purchase_required" });
+    return res.download(path.resolve(process.cwd(), "server/private-packs", PACK_FILES[pack]), PACK_FILES[pack]);
+  });
+  app.post("/api/premium-ai", async (req, res) => {
+    const user = getDiscordUser(req);
+    if (!user) return res.status(401).json({ error: "discord_login_required" });
+    if (!(await hasApprovedPremium(user.id))) return res.status(403).json({ error: "premium_pack_required" });
+    const { device = "", refreshRate = "", style = "", game = "" } = req.body || {};
+    if ([device, refreshRate, style, game].some(value => typeof value !== "string" || value.trim().length === 0)) return res.status(400).json({ error: "missing_fields" });
+    try { return res.json({ recommendation: await recommendSensitivity({ device, refreshRate, style, game }) }); }
+    catch (error) { console.error("[Premium AI] failed", error); return res.status(503).json({ error: "ai_unavailable" }); }
   });
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
   if (process.env.NODE_ENV === "development") await setupVite(app, server); else serveStatic(app);

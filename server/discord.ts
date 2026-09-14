@@ -28,7 +28,7 @@ function readCookie(req: Request, name: string) {
 }
 function checkoutPlan(req: Request) {
   const plan = readCookie(req, "sk_checkout_plan");
-  return ["daily", "weekly", "monthly", "lifetime"].includes(plan) ? plan : "";
+  return ["daily", "weekly", "monthly", "lifetime", "sensiNormal", "sensiPremium", "sensiEmulator"].includes(plan) ? plan : "";
 }
 function encodeSession(user: DiscordUser) {
   const payload = base64url(JSON.stringify({ ...user, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 }));
