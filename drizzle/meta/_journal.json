@@ -15,6 +15,13 @@
       "when": 1789387669733,
       "tag": "0001_charming_tombstone",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1789389109118,
+      "tag": "0002_premium_lady_mastermind",
+      "breakpoints": true
     }
   ]
 }

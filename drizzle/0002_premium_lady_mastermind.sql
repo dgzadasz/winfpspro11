@@ -1,0 +1,1 @@
+ALTER TABLE `discord_orders` ADD `discordMessageId` varchar(64);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "wouter";
 import { ArrowRight, Check, Clipboard, Download, ExternalLink, LockKeyhole, LogOut, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,7 +24,6 @@ async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
 export default function Home() {
   const [user, setUser] = useState<DiscordUser | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [adminOrders, setAdminOrders] = useState<Order[]>([]);
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [workingPlan, setWorkingPlan] = useState<string | null>(null);
@@ -34,14 +34,10 @@ export default function Home() {
     setUser(session.user);
     if (!session.user) {
       setOrders([]);
-      setAdminOrders([]);
       return;
     }
     const mine = await readJson<{ orders: Order[] }>("/api/store/orders");
     setOrders(mine.orders);
-    const admin = await fetch("/api/store/admin/orders");
-    if (admin.ok) setAdminOrders((await admin.json()).orders);
-    else setAdminOrders([]);
   };
 
   useEffect(() => {
@@ -49,21 +45,7 @@ export default function Home() {
   }, []);
 
   const login = () => { window.location.href = "/api/discord/login"; };
-  const logout = async () => { await readJson("/api/discord/logout", { method: "POST" }); setUser(null); setOrders([]); setAdminOrders([]); };
-  const createOrder = async (plan: string) => {
-    if (!user) { login(); return; }
-    setWorkingPlan(plan); setMessage("");
-    try {
-      const result = await readJson<{ order: CreatedOrder }>("/api/store/orders", { method: "POST", body: JSON.stringify({ plan }) });
-      setCreatedOrder(result.order);
-      await refresh();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível criar o pedido."); }
-    finally { setWorkingPlan(null); }
-  };
-  const approve = async (id: string) => {
-    await readJson(`/api/store/admin/orders/${id}/approve`, { method: "POST" });
-    await refresh();
-  };
+  const logout = async () => { await readJson("/api/discord/logout", { method: "POST" }); setUser(null); setOrders([]); };
   const copyPix = async () => {
     if (!createdOrder) return;
     await navigator.clipboard.writeText(createdOrder.pix);
@@ -87,7 +69,7 @@ export default function Home() {
           <div className="hero-card"><div className="orb orb-a" /><div className="orb orb-b" /><div className="hero-card-content"><span className="card-kicker">SK$ / ACCESS</span><strong>ACESSO<br /><span>SEM LIMITES</span></strong><div className="card-footer"><span>ANDROID</span><span>2026</span></div></div></div>
         </section>
 
-        <section id="plans" className="content-section"><div className="section-heading"><div><span className="section-index">01 / LOJA</span><h2>Escolha seu plano</h2></div><p>Pix rápido, registro no Discord e confirmação manual.</p></div><div className="plans-grid">{plans.map((plan, index) => <article className={`plan-card ${plan.featured ? "featured" : ""}`} key={plan.key}>{plan.featured && <div className="popular">MAIS POPULAR</div>}<div className="plan-icon">{plan.key === "lifetime" ? "∞" : `0${index + 1}`}</div><h3>{plan.name}</h3><p>{plan.duration}</p><div className="price">{plan.price}</div><Button className="plan-button" disabled={workingPlan !== null} onClick={() => createOrder(plan.key)}>{workingPlan === plan.key ? "Gerando pedido..." : user ? "Gerar Pix" : "Entrar com Discord"} <ArrowRight size={16} /></Button><ul><li><Check size={15} /> Pagamento via Pix</li><li><Check size={15} /> Registro no canal de compras</li></ul></article>)}</div></section>
+        <section id="plans" className="content-section"><div className="section-heading"><div><span className="section-index">01 / LOJA</span><h2>Escolha seu plano</h2></div><p>Pix rápido, registro no Discord e confirmação manual.</p></div><div className="plans-grid">{plans.map((plan, index) => <article className={`plan-card ${plan.featured ? "featured" : ""}`} key={plan.key}>{plan.featured && <div className="popular">MAIS POPULAR</div>}<div className="plan-icon">{plan.key === "lifetime" ? "∞" : `0${index + 1}`}</div><h3>{plan.name}</h3><p>{plan.duration}</p><div className="price">{plan.price}</div><Link href={`/checkout/${plan.key}`} className="plan-button">Ir para compra <ArrowRight size={16} /></Link><ul><li><Check size={15} /> Pagamento via Pix</li><li><Check size={15} /> Registro no canal de compras</li></ul></article>)}</div></section>
 
         <section id="how" className="how-section"><div><span className="section-index">02 / PROCESSO</span><h2>Simples do início ao fim.</h2></div><div className="steps"><div><b>01</b><h3>Entre com Discord</h3><p>O site verifica sua identidade e confirma que você está no servidor oficial.</p></div><div><b>02</b><h3>Faça o Pix</h3><p>O pedido gera um código Pix vinculado ao identificador único da compra.</p></div><div><b>03</b><h3>Aguarde a conferência</h3><p>O pedido chega ao canal de log. A aprovação é feita manualmente pelo administrador.</p></div></div></section>
 
@@ -96,9 +78,7 @@ export default function Home() {
         {createdOrder && <section className="pix-panel"><div><span className="section-index">PEDIDO {createdOrder.id}</span><h2>Pix gerado</h2><p>Copie o código abaixo e faça o pagamento de {formatAmount(createdOrder.amountCents)}. O pedido já foi enviado ao canal de log para conferência manual.</p><p className="privacy-note"><LockKeyhole size={14} /> O Pix não contém seu nome, ID do Discord ou dados de cliente. Ele mostra somente os dados necessários do recebedor e o identificador do pedido.</p></div><div className="pix-copy"><textarea readOnly value={createdOrder.pix} aria-label="Pix copia e cola" /><Button onClick={copyPix}><Clipboard size={16} /> Copiar Pix</Button></div></section>}
         {message && <div className="feedback">{message}</div>}
 
-        {user && adminOrders.length > 0 && <section className="admin-section"><div className="section-heading"><div><span className="section-index">04 / ADMINISTRAÇÃO</span><h2>Conferência de pagamentos</h2></div><p>Confirme no banco antes de aprovar.</p></div><div className="orders-list">{adminOrders.map(order => <div className="order-row" key={order.id}><div><strong>{order.planName} · {order.discordName}</strong><small>Discord {order.discordId} · Pedido {order.id}</small></div><div className="order-meta"><b>{formatAmount(order.amountCents)}</b><Button size="sm" onClick={() => approve(order.id)}>Confirmar recebimento</Button></div></div>)}</div></section>}
-
-        <section id="download" className="download-banner"><div className="download-icon"><Download size={28} /></div><div><span className="section-index">05 / DOWNLOAD</span><h2>APK em preparação</h2><p>O download ficará disponível assim que o APK oficial for adicionado à loja.</p></div><Button variant="outline" disabled><LockKeyhole size={16} /> Bloqueado por enquanto</Button></section>
+        <section id="download" className="download-banner"><div className="download-icon"><Download size={28} /></div><div><span className="section-index">04 / DOWNLOAD</span><h2>APK em preparação</h2><p>O download ficará disponível assim que o APK oficial for adicionado à loja.</p></div><Button variant="outline" disabled><LockKeyhole size={16} /> Bloqueado por enquanto</Button></section>
       </main>
       <footer><span>SK$ STORE</span><span>Pix: DIEGO · SAO PAULO</span><a href="https://discord.gg/xJY2PZ6Zx" target="_blank" rel="noreferrer">Suporte pelo Discord ↗</a></footer>
     </div>

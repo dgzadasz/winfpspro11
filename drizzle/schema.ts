@@ -23,6 +23,7 @@ export const discordOrders = mysqlTable("discord_orders", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   approvedAt: timestamp("approvedAt"),
   notifiedAt: timestamp("notifiedAt"),
+  discordMessageId: varchar("discordMessageId", { length: 64 }),
 }, table => ({ discordIdIdx: index("discord_orders_discord_id_idx").on(table.discordId) }));
 
 export type User = typeof users.$inferSelect;

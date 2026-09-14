@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pixPayload, PLANS } from "./orders";
+import { pixPayload, pixQrDataUrl, PLANS } from "./orders";
 
 describe("store orders", () => {
   it("builds a Pix payload with the selected amount and order reference", () => {
@@ -18,5 +18,11 @@ describe("store orders", () => {
     expect(PLANS.weekly.amountCents).toBe(4000);
     expect(PLANS.monthly.amountCents).toBe(12000);
     expect(PLANS.lifetime.days).toBe(0);
+  });
+
+  it("generates a QR image without embedding customer identity", async () => {
+    const qr = await pixQrDataUrl({ id: "TESTORDER01", plan: "weekly" });
+    expect(qr).toMatch(/^data:image\/png;base64,/);
+    expect(qr).not.toContain("Discord");
   });
 });
