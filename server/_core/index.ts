@@ -15,6 +15,7 @@ import { PACK_FILES, hasApprovedPack, hasApprovedPremium, isPackKey } from "../p
 import { recommendSensitivity } from "../sensi-ai";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { CATALOG } from "../../shared/catalog";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> { return new Promise(resolve => { const server = net.createServer(); server.listen(port, () => server.close(() => resolve(true))); server.on("error", () => resolve(false)); }); }
@@ -28,6 +29,7 @@ async function startServer() {
   const server = createServer(app);
   registerDiscordInteractionRoute(app);
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
+  app.get("/api/catalog", (_req, res) => res.json({ products: CATALOG, categories: [...new Set(CATALOG.map(product => product.category))] }));
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
