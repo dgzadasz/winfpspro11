@@ -1,0 +1,22 @@
+import { describe, expect, it } from "vitest";
+import { pixPayload, PLANS } from "./orders";
+
+describe("store orders", () => {
+  it("builds a Pix payload with the selected amount and order reference", () => {
+    const payload = pixPayload({ id: "TESTORDER01", plan: "weekly" });
+    expect(payload).toContain("5405");
+    expect(payload).toContain("40.00");
+    expect(payload).toContain("TESTORDER01");
+    expect(payload).not.toContain("Discord");
+    expect(payload).not.toContain("Cliente");
+    expect(payload).toMatch(/[0-9A-F]{4}$/);
+  });
+
+  it("keeps the four published plans and prices stable", () => {
+    expect(Object.keys(PLANS)).toEqual(["daily", "weekly", "monthly", "lifetime"]);
+    expect(PLANS.daily.amountCents).toBe(1000);
+    expect(PLANS.weekly.amountCents).toBe(4000);
+    expect(PLANS.monthly.amountCents).toBe(12000);
+    expect(PLANS.lifetime.days).toBe(0);
+  });
+});
