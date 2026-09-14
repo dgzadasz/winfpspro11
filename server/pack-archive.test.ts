@@ -14,7 +14,7 @@ describe('device packs',()=>{
  it('builds a ZIP with personalized, phone and emulator guides',()=>{
   const zip=personalizedPack(profile,true);
   expect(zip.readUInt32LE(0)).toBe(0x04034b50);
-  expect(zip.readUInt16LE(zip.length-14)).toBe(4);
-  expect(zip.toString()).toContain('iPhone 13');expect(zip.toString()).toContain('GUIA-EMULADOR.html');
+  expect(zip.readUInt16LE(zip.length-14)).toBe(3);
+  expect(zip.toString()).toContain('iPhone 13');expect(zip.toString()).not.toContain('GUIA-EMULADOR.html');
  });
 });

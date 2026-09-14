@@ -10,7 +10,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { registerDiscordInteractionRoute, registerDiscordRoutes, getDiscordUser } from "../discord";
 import { cancelOrder, createOrder, getOrderForUser, getOrdersForUser, PLANS } from "../orders";
 import { validDeviceProfile } from "../../shared/devices";
-import { personalizedPack } from "../pack-archive";
+import { personalizedPack, deviceGuide, emulatorGuide } from "../pack-archive";
 import { PACK_FILES, hasApprovedPack, hasApprovedPremium, isPackKey } from "../packs";
 import { recommendSensitivity } from "../sensi-ai";
 import { appRouter } from "../routers";
@@ -63,7 +63,7 @@ async function startServer() {
     try { return res.json(await cancelOrder(req.params.id, user.id)); }
     catch (error) { return res.status(409).json({ error: error instanceof Error ? error.message : "order_cancel_failed" }); }
   });
-  app.get("/api/packs/:pack/download", async (req, res) => {
+    app.get("/api/packs/:pack/download", async (req, res) => {
     const user = getDiscordUser(req);
     const pack = req.params.pack;
     if (!user) return res.status(401).json({ error: "discord_login_required" });
@@ -77,14 +77,23 @@ async function startServer() {
       catch { return res.status(503).json({error:"Não foi possível preparar seu ZIP. Tente novamente."}); }
     }
     return res.download(path.resolve(process.cwd(), "server/private-packs", PACK_FILES[pack]), PACK_FILES[pack]);
-  });
+    });
+    app.get("/api/packs/:pack/guide", async (req, res) => {
+      const user = getDiscordUser(req); const pack = req.params.pack;
+      if (!user || !isPackKey(pack)) return res.status(401).send("Conecte-se com Discord para abrir seu guia.");
+      const orders = await getOrdersForUser(user.id); const owned = orders.find(o => o.plan === pack && o.status === "approved");
+      if (!owned) return res.status(403).send("Este guia só fica disponível após a aprovação da compra.");
+      if (pack === "sensiEmulator") return res.type("html").send(emulatorGuide());
+      try { const profile = owned.deviceProfile ? JSON.parse(owned.deviceProfile) : null; return res.type("html").send(validDeviceProfile(profile) ? deviceGuide(profile) : "<h1>Perfil não encontrado</h1><p>Fale com o suporte para atualizar seu pedido.</p>"); }
+      catch { return res.status(503).send("Não foi possível abrir o guia."); }
+    });
   app.post("/api/premium-ai", async (req, res) => {
     const user = getDiscordUser(req);
     if (!user) return res.status(401).json({ error: "discord_login_required" });
     if (!(await hasApprovedPremium(user.id))) return res.status(403).json({ error: "premium_pack_required" });
     const { device = "", refreshRate = "", style = "", game = "" } = req.body || {};
     if ([device, refreshRate, style, game].some(value => typeof value !== "string" || value.trim().length === 0)) return res.status(400).json({ error: "missing_fields" });
-    try { return res.json({ recommendation: await recommendSensitivity({ device, refreshRate, style, game }) }); }
+      try { return res.json({ recommendation: await recommendSensitivity({ device, refreshRate, style, game }) }); }
     catch (error) { console.error("[Premium AI] failed", error); return res.status(503).json({ error: "ai_unavailable" }); }
   });
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
