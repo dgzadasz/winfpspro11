@@ -7,30 +7,40 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { registerDiscordInteractionRoute, registerDiscordRoutes, getDiscordUser } from "../discord";
-import { createOrder, getOrdersForUser, PLANS } from "../orders";
+import { cancelOrder, createOrder, getOrderForUser, getOrdersForUser, PLANS } from "../orders";
 import { PACK_FILES, hasApprovedPack, hasApprovedPremium, isPackKey } from "../packs";
 import { recommendSensitivity } from "../sensi-ai";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 
-type RawRequest = express.Request & { rawBody?: Buffer };
 function isPortAvailable(port: number): Promise<boolean> { return new Promise(resolve => { const server = net.createServer(); server.listen(port, () => server.close(() => resolve(true))); server.on("error", () => resolve(false)); }); }
 async function findAvailablePort(startPort = 3000): Promise<number> { for (let port = startPort; port < startPort + 20; port++) if (await isPortAvailable(port)) return port; throw new Error(`No available port found starting from ${startPort}`); }
 
 async function startServer() {
+  if (process.env.NODE_ENV === "production" && (process.env.JWT_SECRET?.length || 0) < 32) {
+    throw new Error("Configure JWT_SECRET with at least 32 characters before starting production.");
+  }
   const app = express();
   const server = createServer(app);
-  app.use(express.json({ limit: "50mb", verify: (req, _res, buffer) => { if ((req as express.Request).originalUrl.startsWith("/api/discord/interactions")) (req as RawRequest).rawBody = Buffer.from(buffer); } }));
+  registerDiscordInteractionRoute(app);
+  app.get("/api/health", (_req, res) => res.json({ ok: true }));
+  app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerDiscordRoutes(app);
-  registerDiscordInteractionRoute(app);
   app.get("/api/store/orders", async (req, res) => {
     const user = getDiscordUser(req);
     if (!user) return res.status(401).json({ error: "discord_login_required" });
     return res.json({ orders: await getOrdersForUser(user.id) });
+  });
+  app.get("/api/store/orders/:id", async (req, res) => {
+    const user = getDiscordUser(req);
+    if (!user) return res.status(401).json({ error: "discord_login_required" });
+    const order = await getOrderForUser(req.params.id, user.id);
+    if (!order) return res.status(404).json({ error: "order_not_found" });
+    return res.json({ order });
   });
   app.post("/api/store/orders", async (req, res) => {
     const user = getDiscordUser(req);
@@ -39,6 +49,12 @@ async function startServer() {
     if (!(plan in PLANS)) return res.status(400).json({ error: "invalid_plan" });
     try { return res.status(201).json({ order: await createOrder(user, plan as keyof typeof PLANS) }); }
     catch (error) { console.error("[Orders] create failed", error); return res.status(503).json({ error: "orders_unavailable" }); }
+  });
+  app.post("/api/store/orders/:id/cancel", async (req, res) => {
+    const user = getDiscordUser(req);
+    if (!user) return res.status(401).json({ error: "discord_login_required" });
+    try { return res.json(await cancelOrder(req.params.id, user.id)); }
+    catch (error) { return res.status(409).json({ error: error instanceof Error ? error.message : "order_cancel_failed" }); }
   });
   app.get("/api/packs/:pack/download", async (req, res) => {
     const user = getDiscordUser(req);
@@ -63,4 +79,4 @@ async function startServer() {
   if (port !== preferredPort) console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   server.listen(port, () => console.log(`Server running on http://localhost:${port}/`));
 }
-startServer().catch(console.error);
+startServer().catch(error => { console.error(error); process.exitCode = 1; });

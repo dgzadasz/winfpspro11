@@ -1,31 +1,36 @@
-# SK$ SENSI PREMIUM
+# SK$ SENSI PREMIUM — FREE FIRE E FREE FIRE MAX
 
-## Conteúdo exclusivo
+Preset avançado para celular, com calibração por tela e estilo. A Garena permite importar HUDs recomendadas e escolher se a sensibilidade também será sincronizada.
 
-Presets avançados para Android, iPhone e tablets, com trilhas de ajuste por taxa de atualização, tamanho de tela e estilo de controle.
+## Presets
 
-## Método premium de calibração
+| Perfil | Geral | Ponto vermelho | 2x | 4x | AWM | Olhadinha |
+|---|---:|---:|---:|---:|---:|---:|
+| 60 Hz / toque padrão | 168 | 160 | 150 | 138 | 88 | 126 |
+| 90–120 Hz / toque rápido | 184 | 178 | 168 | 154 | 98 | 140 |
+| Tela grande / tablet | 158 | 150 | 142 | 130 | 84 | 118 |
 
-1. Use o preset equilibrado por uma sessão curta.
-2. Teste arrasto vertical, troca de alvo e controle de recuo separadamente.
-3. Registre o resultado em uma escala de 1 a 5.
-4. Mude somente uma variável por vez.
-5. Salve um perfil para cada jogo e dispositivo.
+## Botão, HUD e controles
 
-## Perfis
+- Dois dedos: tiro 50%, opacidade 45%.
+- Três dedos: tiro 53%, opacidade 40%.
+- Quatro dedos: tiro 55%, opacidade 35%.
+- Deixe pulo, agachar e parede de gel em zonas independentes.
+- Comece com Mira Precisa em **Padrão**.
+- Em **Configurações > HUD > Recomendação**, teste layouts oficiais e escolha se deseja importar também a sensibilidade.
 
-### 60 Hz / toque padrão
+## Calibração
 
-Priorize controle: Geral 84, Red Dot 78, 2x 70, 4x 60, Sniper 38.
+1. Selecione a linha mais próxima do seu aparelho.
+2. Na Ilha de Treinamento, teste arrasto, troca de alvo e recuo separadamente.
+3. Se errar para cima, reduza Geral/Ponto vermelho; se parar abaixo, aumente 2–4.
+4. Registre cada resultado de 1 a 5 e mude somente uma variável.
+5. Salve em **Básica > Sincronizar Configurações > Enviar**.
 
-### 90–120 Hz / toque rápido
+## Estilos
 
-Priorize resposta: Geral 94, Red Dot 88, 2x 80, 4x 70, Sniper 46.
+- Rush/SMG: Geral e Ponto vermelho +4; botão +2%.
+- Rifle equilibrado: tabela sem alteração.
+- Precisão/DMR/AWM: 2x, 4x e AWM -5; botão -2%.
 
-### Tela grande / tablet
-
-Priorize estabilidade: Geral 80, Red Dot 74, 2x 68, 4x 58, Sniper 36.
-
-## Observação
-
-Os valores são presets legais de configuração do jogo. Não incluem scripts, automações, injeções ou qualquer alteração não autorizada no aplicativo. O resultado varia por dispositivo e atualização do jogo.
+Mantenha FPS estável, feche apps em segundo plano e não altere DPI durante a calibração. O Pack Premium libera o Assistente IA após aprovação; a IA somente recomenda valores e não altera o dispositivo. Não inclui scripts, macros ou exploits.

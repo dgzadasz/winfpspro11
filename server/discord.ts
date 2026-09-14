@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import type { Express, Request, Response } from "express";
-import { approveOrder } from "./orders";
+import express, { type Express, type Request, type Response } from "express";
+import { approveOrder, cancelOrderByAdmin } from "./orders";
 
 export type DiscordUser = { id: string; username: string; displayName: string; avatar: string | null };
 type RawRequest = Request & { rawBody?: Buffer };
@@ -8,7 +8,6 @@ type RawRequest = Request & { rawBody?: Buffer };
 const SESSION_COOKIE = "sk_discord_session";
 const STATE_COOKIE = "sk_discord_oauth_state";
 const DEFAULT_REDIRECT_URI = "https://skstore-m5ftihig.manus.space/api/discord/callback";
-const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY || "a9c8eae26984fcb51b1e1c3ca0c50e2a6450ff2996e6285da743ce252dc9eac4";
 
 function secret() { return process.env.JWT_SECRET || "sk-store-discord-session-development-secret"; }
 function base64url(value: string | Buffer) { return Buffer.from(value).toString("base64url"); }
@@ -92,28 +91,59 @@ export function registerDiscordRoutes(app: Express) {
 function verifyInteraction(req: RawRequest) {
   const signature = req.header("X-Signature-Ed25519");
   const timestamp = req.header("X-Signature-Timestamp");
-  if (!signature || !timestamp || !req.rawBody) return false;
+  const publicKeyHex = process.env.DISCORD_PUBLIC_KEY?.trim() || "";
+  if (!signature || !/^[a-f0-9]{128}$/i.test(signature) || !timestamp || !req.rawBody || !/^[a-f0-9]{64}$/i.test(publicKeyHex)) return false;
   try {
-    const keyDer = Buffer.concat([Buffer.from("302a300506032b6570032100", "hex"), Buffer.from(DISCORD_PUBLIC_KEY, "hex")]);
+    const keyDer = Buffer.concat([Buffer.from("302a300506032b6570032100", "hex"), Buffer.from(publicKeyHex, "hex")]);
     const publicKey = crypto.createPublicKey({ key: keyDer, format: "der", type: "spki" });
     return crypto.verify(null, Buffer.concat([Buffer.from(timestamp), req.rawBody]), publicKey, Buffer.from(signature, "hex"));
   } catch { return false; }
 }
 
 export function registerDiscordInteractionRoute(app: Express) {
-  app.post("/api/discord/interactions", async (req, res) => {
+  app.post("/api/discord/interactions", express.raw({ type: "application/json", limit: "1mb" }), async (req, res) => {
     const rawReq = req as RawRequest;
+    rawReq.rawBody = Buffer.isBuffer(req.body) ? req.body : rawReq.rawBody;
     if (!verifyInteraction(rawReq)) return res.status(401).send("invalid request signature");
-    const interaction = req.body as { type?: number; data?: { custom_id?: string }; member?: { user?: { id?: string } }; channel_id?: string };
+    let interaction: { type?: number; application_id?: string; token?: string; data?: { custom_id?: string }; member?: { user?: { id?: string } }; channel_id?: string };
+    try { interaction = JSON.parse(rawReq.rawBody!.toString("utf8")); }
+    catch { return res.status(400).send("invalid JSON"); }
+    if (!interaction || typeof interaction !== "object") return res.status(400).send("invalid interaction");
     if (interaction.type === 1) return res.json({ type: 1 });
     if (interaction.type !== 3) return res.json({ type: 4, data: { content: "Interação não suportada.", flags: 64 } });
     const actorId = interaction.member?.user?.id;
     const customId = interaction.data?.custom_id || "";
-    const orderId = customId.startsWith("sk_approve:") ? customId.slice("sk_approve:".length) : "";
+    const action = customId.startsWith("sk_approve:") ? "approve" : customId.startsWith("sk_cancel:") ? "cancel" : "";
+    const orderId = action ? customId.slice(customId.indexOf(":") + 1) : "";
     if (!orderId || !actorId || actorId !== process.env.DISCORD_ADMIN_ID || interaction.channel_id !== process.env.DISCORD_LOG_CHANNEL_ID) return res.json({ type: 4, data: { content: "Você não tem permissão para confirmar este pedido.", flags: 64 } });
+    if (!interaction.application_id || !interaction.token) return res.status(400).send("missing interaction credentials");
+    // Acknowledge before any database or network work (Discord allows 3 seconds).
+    res.json({ type: 6 });
+    const webhook = `https://discord.com/api/v10/webhooks/${encodeURIComponent(interaction.application_id)}/${encodeURIComponent(interaction.token)}`;
+    const send = async (url: string, method: string, data: unknown) => {
+      const response = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data), signal: AbortSignal.timeout(10000) });
+      if (!response.ok) throw new Error(`Discord response status ${response.status}`);
+    };
+    let update: { content: string; components: unknown[] };
     try {
+      if (action === "cancel") {
+        const result = await cancelOrderByAdmin(orderId, actorId);
+        update = { content: `**SK$ STORE · PEDIDO CANCELADO**\nPedido: \`${result.orderId}\`\nCancelado por: <@${actorId}>`, components: [{ type: 1, components: [{ type: 2, style: 4, label: "Pedido cancelado", custom_id: `sk_cancelled:${result.orderId}`, disabled: true }] }] };
+      } else {
       const result = await approveOrder(orderId, actorId);
-      return res.json({ type: 7, data: { content: `**SK$ STORE · PAGAMENTO CONFIRMADO**\nPedido: \`${result.orderId}\`\nCliente: **${result.discordName}**\nConfirmado por: <@${actorId}>`, components: [{ type: 1, components: [{ type: 2, style: 3, label: "Pagamento confirmado", custom_id: `sk_approved:${result.orderId}`, disabled: true }] }] } });
-    } catch (error) { console.error("[Discord Interaction] approval failed", error); return res.json({ type: 4, data: { content: "Não foi possível confirmar este pedido.", flags: 64 } }); }
+      update = { content: `**SK$ STORE · PAGAMENTO CONFIRMADO**\nPedido: \`${result.orderId}\`\nCliente: **${result.discordName}**\nConfirmado por: <@${actorId}>`, components: [{ type: 1, components: [{ type: 2, style: 3, label: "Pagamento confirmado", custom_id: `sk_approved:${result.orderId}`, disabled: true }] }] };
+      }
+    } catch (error) {
+      console.error("[Discord Interaction] order operation failed", error);
+      try { await send(webhook, "POST", { content: "Não foi possível concluir a operação. Consulte o status do pedido antes de tentar novamente.", flags: 64 }); }
+      catch { console.error("[Discord Interaction] failed to send error notification"); }
+      return;
+    }
+    try { await send(`${webhook}/messages/@original`, "PATCH", { ...update, allowed_mentions: { parse: [] } }); }
+    catch {
+      console.error("[Discord Interaction] order saved, message update failed");
+      try { await send(webhook, "POST", { content: "Pedido atualizado no banco, mas a mensagem não foi atualizada. Confira o status no site.", flags: 64 }); }
+      catch { console.error("[Discord Interaction] failed to send status notification"); }
+    }
   });
 }

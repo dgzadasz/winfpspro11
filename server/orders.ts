@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import QRCode from "qrcode";
 import { discordOrders } from "../drizzle/schema";
 import type { DiscordUser } from "./discord";
@@ -66,7 +66,7 @@ async function postBotMessage(order: { id: string; plan: PlanKey; discordName: s
       image: { url: "attachment://pix.png" },
       footer: { text: "A confirmação é manual e só pode ser feita neste canal." },
     }],
-    components: [{ type: 1, components: [{ type: 2, style: 3, label: "Confirmar pagamento", custom_id: `sk_approve:${order.id}` }] }],
+    components: [{ type: 1, components: [{ type: 2, style: 3, label: "Confirmar pagamento", custom_id: `sk_approve:${order.id}` }, { type: 2, style: 4, label: "Cancelar pedido", custom_id: `sk_cancel:${order.id}` }] }],
   };
   const form = new FormData();
   form.append("payload_json", JSON.stringify(payload));
@@ -116,7 +116,7 @@ export async function getOrderForUser(orderId: string, discordId: string) {
 export async function getPendingOrders() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(discordOrders).where(or(eq(discordOrders.status, "pending"), isNull(discordOrders.notifiedAt))).orderBy(desc(discordOrders.createdAt));
+  return db.select().from(discordOrders).where(eq(discordOrders.status, "pending")).orderBy(desc(discordOrders.createdAt));
 }
 
 export async function getDiscordAdminOrders() { return getPendingOrders(); }
@@ -127,6 +127,35 @@ export async function approveOrder(orderId: string, adminId: string) {
   const rows = await db.select().from(discordOrders).where(eq(discordOrders.id, orderId)).limit(1);
   const order = rows[0];
   if (!order) throw new Error("Order not found");
+  if (order.status === "cancelled") throw new Error("Order cancelled");
   if (order.status === "pending") await db.update(discordOrders).set({ status: "approved", approvedAt: new Date() }).where(and(eq(discordOrders.id, orderId), eq(discordOrders.status, "pending")));
+  const latest = await db.select().from(discordOrders).where(eq(discordOrders.id, orderId)).limit(1);
+  if (latest[0]?.status !== "approved") throw new Error("Order was cancelled concurrently");
   return { success: true, orderId, planName: order.planName, discordName: order.discordName, adminId };
+}
+
+export async function cancelOrder(orderId: string, discordId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const rows = await db.select().from(discordOrders).where(and(eq(discordOrders.id, orderId), eq(discordOrders.discordId, discordId))).limit(1);
+  const order = rows[0];
+  if (!order) throw new Error("Order not found");
+  if (order.status === "approved") throw new Error("Order already approved");
+  if (order.status === "pending") await db.update(discordOrders).set({ status: "cancelled" }).where(and(eq(discordOrders.id, orderId), eq(discordOrders.discordId, discordId), eq(discordOrders.status, "pending")));
+  const latest = await db.select().from(discordOrders).where(eq(discordOrders.id, orderId)).limit(1);
+  if (latest[0]?.status !== "cancelled") throw new Error("Order already approved");
+  return { success: true, orderId };
+}
+
+export async function cancelOrderByAdmin(orderId: string, adminId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const rows = await db.select().from(discordOrders).where(eq(discordOrders.id, orderId)).limit(1);
+  const order = rows[0];
+  if (!order) throw new Error("Order not found");
+  if (order.status === "approved") throw new Error("Order already approved");
+  if (order.status === "pending") await db.update(discordOrders).set({ status: "cancelled" }).where(and(eq(discordOrders.id, orderId), eq(discordOrders.status, "pending")));
+  const latest = await db.select().from(discordOrders).where(eq(discordOrders.id, orderId)).limit(1);
+  if (latest[0]?.status !== "cancelled") throw new Error("Order already approved");
+  return { success: true, orderId, adminId };
 }

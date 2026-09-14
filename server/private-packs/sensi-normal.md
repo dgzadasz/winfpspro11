@@ -1,37 +1,41 @@
-# SK$ SENSI NORMAL
+# SK$ SENSI NORMAL — FREE FIRE E FREE FIRE MAX (CELULAR)
 
-## Conteúdo
+Preset legal para Android e iPhone. Use como ponto de partida: a melhor sensibilidade depende do aparelho, FPS e controle do jogador.
 
-Presets iniciais para Android e iPhone, organizados por estilo de controle: equilibrado, controle de capa e precisão.
+## Preset equilibrado (escala até 200)
 
-## Como instalar
+| Opção | Valor |
+|---|---:|
+| Geral | 176 |
+| Ponto vermelho | 168 |
+| Mira 2x | 158 |
+| Mira 4x | 146 |
+| Mira AWM | 92 |
+| Olhadinha | 132 |
 
-1. Abra o jogo e anote suas configurações atuais.
-2. Aplique um preset por vez, sem alterar várias opções simultaneamente.
-3. Jogue no campo de treino por 5 a 10 minutos.
-4. Ajuste em passos pequenos de 2 a 5 pontos.
-5. Mantenha o mesmo preset por algumas partidas antes de comparar.
+## Botão de tiro e HUD
 
-## Presets iniciais
+- Botão de tiro: 48% para dois dedos; 53% para três ou quatro dedos.
+- Opacidade: 35% a 55%.
+- Posicione o tiro no canto direito com espaço para arrastar para cima.
+- Mantenha pular, agachar e parede de gel próximos, sem sobreposição.
+- Comece com Mira Precisa em **Padrão** e Botão esquerdo em **Somente Mira**.
 
-### Android intermediário
+## Como aplicar
 
-- Geral: 92
-- Red Dot: 86
-- Mira 2x: 78
-- Mira 4x: 68
-- Sniper: 45
-- Olhadinha: 72
+1. Abra **Configurações > Na Partida > Sensibilidade**.
+2. Digite os seis valores e use os botões de ajuste de 1 em 1.
+3. Em **Controles**, configure Mira Precisa e o botão esquerdo.
+4. Em **HUD**, ajuste tamanho e posição do botão de tiro e salve.
+5. Na Ilha de Treinamento, faça 20 arrastos curtos, 20 médios e 20 trocas de alvo.
+6. Em **Básica > Sincronizar Configurações**, toque em **Enviar** para guardar na nuvem.
 
-### iPhone com toque responsivo
+## Ajuste rápido
 
-- Geral: 88
-- Red Dot: 82
-- Mira 2x: 75
-- Mira 4x: 65
-- Sniper: 42
-- Olhadinha: 68
+- Passa da cabeça: Geral e Ponto vermelho -5.
+- Para no peito: Geral +4 e Ponto vermelho +3.
+- Treme na 4x/AWM: reduza a mira usada em 5.
+- Arrasto começa tarde: botão de tiro +3%.
+- Altere uma coisa por vez e jogue duas partidas antes de comparar.
 
-## Ajuste fino
-
-Se a mira passar do alvo, reduza Geral e Red Dot em 3 pontos. Se a mira ficar pesada, aumente Geral em 2 pontos. A sensibilidade ideal depende do tamanho da tela, taxa de atualização, película, FPS e hábito do jogador. Este material é um ponto de partida, não uma promessa de desempenho.
+Em 90/120 Hz, experimente Geral e Ponto vermelho +4. Se houver queda de FPS, use gráficos Suave, desligue sombra e mantenha Alto FPS somente se estável. Não inclui macro, script, injeção ou promessa de headshot.

@@ -19,7 +19,7 @@ export const discordOrders = mysqlTable("discord_orders", {
   plan: varchar("plan", { length: 16 }).notNull(),
   planName: varchar("planName", { length: 80 }).notNull(),
   amountCents: int("amountCents").notNull(),
-  status: mysqlEnum("status", ["pending", "approved"]).default("pending").notNull(),
+  status: mysqlEnum("status", ["pending", "approved", "cancelled"]).default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   approvedAt: timestamp("approvedAt"),
   notifiedAt: timestamp("notifiedAt"),
