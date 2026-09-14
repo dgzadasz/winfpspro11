@@ -10,8 +10,8 @@ export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
       _db = drizzle(process.env.DATABASE_URL);
-      await _db.execute(sql`CREATE TABLE IF NOT EXISTS users (id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY, "openId" varchar(64) NOT NULL UNIQUE, name text, email varchar(320), "loginMethod" varchar(64), role text NOT NULL DEFAULT ''user'', "createdAt" timestamp NOT NULL DEFAULT now(), "updatedAt" timestamp NOT NULL DEFAULT now(), "lastSignedIn" timestamp NOT NULL DEFAULT now())`);
-      await _db.execute(sql`CREATE TABLE IF NOT EXISTS discord_orders (id varchar(32) PRIMARY KEY, "discordId" varchar(64) NOT NULL, "discordName" varchar(255) NOT NULL, plan varchar(32) NOT NULL, "planName" varchar(80) NOT NULL, "amountCents" integer NOT NULL, status text NOT NULL DEFAULT ''pending'', "createdAt" timestamp NOT NULL DEFAULT now(), "approvedAt" timestamp, "notifiedAt" timestamp, "discordMessageId" varchar(64))`);
+      await _db.execute(sql`CREATE TABLE IF NOT EXISTS users (id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY, "openId" varchar(64) NOT NULL UNIQUE, name text, email varchar(320), "loginMethod" varchar(64), role text NOT NULL DEFAULT 'user', "createdAt" timestamp NOT NULL DEFAULT now(), "updatedAt" timestamp NOT NULL DEFAULT now(), "lastSignedIn" timestamp NOT NULL DEFAULT now())`);
+      await _db.execute(sql`CREATE TABLE IF NOT EXISTS discord_orders (id varchar(32) PRIMARY KEY, "discordId" varchar(64) NOT NULL, "discordName" varchar(255) NOT NULL, plan varchar(32) NOT NULL, "planName" varchar(80) NOT NULL, "amountCents" integer NOT NULL, status text NOT NULL DEFAULT 'pending', "createdAt" timestamp NOT NULL DEFAULT now(), "approvedAt" timestamp, "notifiedAt" timestamp, "discordMessageId" varchar(64))`);
       await _db.execute(sql`CREATE INDEX IF NOT EXISTS discord_orders_discord_id_idx ON discord_orders ("discordId")`);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
@@ -93,4 +93,5 @@ export async function getUserByOpenId(openId: string) {
 }
 
 // TODO: add feature queries here as your schema grows.
+
 
