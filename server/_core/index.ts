@@ -17,6 +17,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { CATALOG } from "../../shared/catalog";
 import { serveStatic, setupVite } from "./vite";
+import { randomUUID } from "crypto";
 
 function isPortAvailable(port: number): Promise<boolean> { return new Promise(resolve => { const server = net.createServer(); server.listen(port, () => server.close(() => resolve(true))); server.on("error", () => resolve(false)); }); }
 async function findAvailablePort(startPort = 3000): Promise<number> { for (let port = startPort; port < startPort + 20; port++) if (await isPortAvailable(port)) return port; throw new Error(`No available port found starting from ${startPort}`); }
@@ -28,6 +29,7 @@ async function startServer() {
   const app = express();
   app.disable("x-powered-by");
   app.use((_req, res, next) => { res.setHeader("X-Content-Type-Options", "nosniff"); res.setHeader("X-Frame-Options", "SAMEORIGIN"); res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin"); res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()"); next(); });
+  app.use((req, res, next) => { const requestId = randomUUID(); res.setHeader("X-Request-Id", requestId); const started = Date.now(); res.on("finish", () => console.info(`[http] ${req.method} ${req.path} ${res.statusCode} ${Date.now() - started}ms ${requestId}`)); next(); });
   const server = createServer(app);
   registerDiscordInteractionRoute(app);
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
@@ -101,6 +103,7 @@ async function startServer() {
       catch (error) { console.error("[Premium AI] failed", error); return res.status(503).json({ error: "ai_unavailable", detail: error instanceof Error ? error.message : "Provedor indisponível" }); }
   });
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
+  app.use((error: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => { if (res.headersSent) return next(error); const requestId = res.getHeader("X-Request-Id"); console.error("[http] unhandled error", { requestId, method: req.method, path: req.path, error }); res.status(500).json({ error: "internal_server_error", requestId }); });
   if (process.env.NODE_ENV === "development") await setupVite(app, server); else serveStatic(app);
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
