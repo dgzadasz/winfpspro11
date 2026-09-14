@@ -16,6 +16,8 @@ import { recommendSensitivity } from "../sensi-ai";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { CATALOG } from "../../shared/catalog";
+import { catalogProducts } from "../../drizzle/schema";
+import { getDb } from "../db";
 import { serveStatic, setupVite } from "./vite";
 import { randomUUID } from "crypto";
 
@@ -33,7 +35,7 @@ async function startServer() {
   const server = createServer(app);
   registerDiscordInteractionRoute(app);
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
-  app.get("/api/catalog", (_req, res) => res.json({ products: CATALOG, categories: Array.from(new Set(CATALOG.map(product => product.category))) }));
+  app.get("/api/catalog", async (_req, res) => { try { const db = await getDb(); const products = db ? await db.select().from(catalogProducts) : CATALOG; return res.json({ products, categories: Array.from(new Set(products.map(product => product.category))) }); } catch (error) { console.error("[Catalog] read failed", error); return res.json({ products: CATALOG, categories: Array.from(new Set(CATALOG.map(product => product.category))) }); } });
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
