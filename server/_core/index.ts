@@ -29,6 +29,7 @@ async function startServer() {
     throw new Error("Configure JWT_SECRET with at least 32 characters before starting production.");
   }
   const app = express();
+  const aiRequests = new Map<string, { count: number; resetAt: number }>();
   app.disable("x-powered-by");
   app.use((_req, res, next) => { res.setHeader("X-Content-Type-Options", "nosniff"); res.setHeader("X-Frame-Options", "SAMEORIGIN"); res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin"); res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()"); next(); });
   app.use((req, res, next) => { const requestId = randomUUID(); res.setHeader("X-Request-Id", requestId); const started = Date.now(); res.on("finish", () => console.info(`[http] ${req.method} ${req.path} ${res.statusCode} ${Date.now() - started}ms ${requestId}`)); next(); });
@@ -99,6 +100,7 @@ async function startServer() {
     const user = getDiscordUser(req);
     if (!user) return res.status(401).json({ error: "discord_login_required" });
     if (!(await hasApprovedPremium(user.id))) return res.status(403).json({ error: "premium_pack_required" });
+    const now = Date.now(); const bucket = aiRequests.get(user.id); const current = bucket && bucket.resetAt > now ? bucket : { count: 0, resetAt: now + 60_000 }; if (current.count >= 20) return res.status(429).json({ error: "ai_rate_limited", retryAfterSeconds: Math.ceil((current.resetAt - now) / 1000) }); current.count += 1; aiRequests.set(user.id, current);
     const { device = "", refreshRate = "", style = "", game = "" } = req.body || {};
     if ([device, refreshRate, style, game].some(value => typeof value !== "string" || value.trim().length === 0)) return res.status(400).json({ error: "missing_fields" });
       try { return res.json({ recommendation: await recommendSensitivity({ device, refreshRate, style, game }) }); }
