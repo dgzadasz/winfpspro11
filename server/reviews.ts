@@ -12,7 +12,7 @@ export function validateReview(body: any) {
 }
 
 export function registerReviewRoutes(app: Express) {
-  app.get('/api/store/reviews', async (_req, res) => {
+  if (typeof (app as any).get === 'function') app.get('/api/store/reviews', async (_req, res) => {
     try { const db = await getDb(); if (!db) return res.json({ reviews: [] }); const result = await db.execute(sql`SELECT r.order_id AS "orderId", r.rating, r.comment, r.created_at AS "createdAt", o.plan_name AS "planName" FROM store_reviews r JOIN discord_orders o ON o.id = r.order_id WHERE r.sent = true ORDER BY r.created_at DESC LIMIT 30`); return res.json({ reviews: result.rows }); }
     catch (error) { console.error('[Reviews] list failed', error); return res.json({ reviews: [] }); }
   });
