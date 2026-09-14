@@ -10,9 +10,10 @@ import PremiumAI from "./pages/PremiumAI";
 import Cart from "./pages/Cart";
 import Catalog from "./pages/Catalog";
 import Product from "./pages/Product";
+import Dashboard from "./pages/Dashboard";
 
 function Router() {
-  return <Switch><Route path="/" component={Home} /><Route path="/catalog" component={Catalog} /><Route path="/product/:slug" component={Product} /><Route path="/cart" component={Cart} /><Route path="/checkout/:plan" component={Checkout} /><Route path="/premium-ai" component={PremiumAI} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
+  return <Switch><Route path="/" component={Home} /><Route path="/catalog" component={Catalog} /><Route path="/product/:slug" component={Product} /><Route path="/dashboard" component={Dashboard} /><Route path="/cart" component={Cart} /><Route path="/checkout/:plan" component={Checkout} /><Route path="/premium-ai" component={PremiumAI} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 
 export default function App() {
