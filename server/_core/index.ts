@@ -9,6 +9,8 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { registerDiscordInteractionRoute, registerDiscordRoutes, getDiscordUser } from "../discord";
 import { cancelOrder, createOrder, getOrderForUser, getOrdersForUser, PLANS } from "../orders";
+import { validDeviceProfile } from "../../shared/devices";
+import { personalizedPack } from "../pack-archive";
 import { PACK_FILES, hasApprovedPack, hasApprovedPremium, isPackKey } from "../packs";
 import { recommendSensitivity } from "../sensi-ai";
 import { appRouter } from "../routers";
@@ -48,8 +50,11 @@ async function startServer() {
     const user = getDiscordUser(req);
     if (!user) return res.status(401).json({ error: "discord_login_required" });
     const plan = String(req.body?.plan || "");
-    if (!(plan in PLANS)) return res.status(400).json({ error: "invalid_plan" });
-    try { return res.status(201).json({ order: await createOrder(user, plan as keyof typeof PLANS) }); }
+    if (!Object.hasOwn(PLANS, plan)) return res.status(400).json({ error: "invalid_plan" });
+    if (!isPackKey(plan)) return res.status(409).json({ error: "As chaves estarão disponíveis em breve." });
+    const profile = req.body?.deviceProfile;
+    if (plan !== "sensiEmulator" && !validDeviceProfile(profile)) return res.status(400).json({ error: "Selecione a marca, o modelo, o jogo e sua preferência." });
+    try { return res.status(201).json({ order: await createOrder(user, plan, plan === "sensiEmulator" ? undefined : profile) }); }
     catch (error) { console.error("[Orders] create failed", error); return res.status(503).json({ error: "orders_unavailable" }); }
   });
   app.post("/api/store/orders/:id/cancel", async (req, res) => {
@@ -63,6 +68,14 @@ async function startServer() {
     const pack = req.params.pack;
     if (!user) return res.status(401).json({ error: "discord_login_required" });
     if (!isPackKey(pack) || !(await hasApprovedPack(user.id, pack))) return res.status(403).json({ error: "pack_purchase_required" });
+    const orders = await getOrdersForUser(user.id);
+    const requested = typeof req.query.order === "string" ? req.query.order : null;
+    const owned = orders.find(o => o.plan === pack && o.status === "approved" && (!requested || o.id === requested));
+    if (!owned) return res.status(403).json({error:"pack_purchase_required"});
+    if (owned.deviceProfile && pack !== "sensiEmulator") {
+      try { const profile = JSON.parse(owned.deviceProfile); if (validDeviceProfile(profile)) return res.type("application/zip").attachment(PACK_FILES[pack]).send(personalizedPack(profile, pack === "sensiPremium")); }
+      catch { return res.status(503).json({error:"Não foi possível preparar seu ZIP. Tente novamente."}); }
+    }
     return res.download(path.resolve(process.cwd(), "server/private-packs", PACK_FILES[pack]), PACK_FILES[pack]);
   });
   app.post("/api/premium-ai", async (req, res) => {

@@ -1,3 +1,4 @@
+import type { DeviceProfile } from "../shared/devices";
 import crypto from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import QRCode from "qrcode";
@@ -81,12 +82,12 @@ async function postBotMessage(order: { id: string; plan: PlanKey; discordName: s
   return await response.json() as { id: string };
 }
 
-export async function createOrder(user: DiscordUser, planKey: PlanKey) {
+export async function createOrder(user: DiscordUser, planKey: PlanKey, deviceProfile?: DeviceProfile) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   const plan = PLANS[planKey];
   const id = crypto.randomBytes(10).toString("hex").toUpperCase();
-  await db.insert(discordOrders).values({ id, discordId: user.id, discordName: user.displayName, plan: planKey, planName: plan.name, amountCents: plan.amountCents, status: "pending" });
+  await db.insert(discordOrders).values({ id, discordId: user.id, discordName: user.displayName, plan: planKey, planName: plan.name, amountCents: plan.amountCents, deviceProfile: deviceProfile ? JSON.stringify(deviceProfile) : null, status: "pending" });
   let messageId: string | null = null;
   try {
     const message = await postBotMessage({ id, plan: planKey, discordName: user.displayName, discordId: user.id });
