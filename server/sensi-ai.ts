@@ -2,6 +2,9 @@ import { invokeLLM } from "./_core/llm";
 async function searchContext(query:string) { try { const q=encodeURIComponent(`${query.slice(0,180)} Free Fire sensibilidade aparelho`); const r=await fetch(`https://html.duckduckgo.com/html/?q=${q}`,{headers:{"User-Agent":"SK-Store-Coach/1.0"},signal:AbortSignal.timeout(7000)}); const html=await r.text(); return Array.from(html.matchAll(/class="result__snippet"[^>]*>(.*?)<\/a>/g)).slice(0,4).map(m=>m[1].replace(/<[^>]+>/g," ").replace(/&amp;/g,"&")).join("\n").slice(0,2400); } catch { return "Pesquisa web indisponível; responda usando somente conhecimento geral e deixe claro o limite."; } }
 
 export async function recommendSensitivity(input: { device: string; refreshRate: string; style: string; game: string }) {
+  if (/^(ola|olá|oi|oie|e ai|e aí|bom dia|boa tarde|boa noite)[!,.?\s]*$/i.test(input.device.trim())) {
+    return "Olá! Tudo bem por aqui 👋 Eu sou o SK$ Coach. Posso te ajudar com sensibilidade do Free Fire, Free Fire MAX, celular, HUD, FPS ou emulador. Qual é o seu aparelho e o que você quer melhorar?";
+  }
   const request = {
     messages: [
       { role: "system", content: "Você é o SK$ Coach, um chatbot conversacional em português. Fale de modo natural e faça perguntas de acompanhamento quando faltar aparelho, jogo, FPS, estilo ou objetivo. Seu único assunto é Free Fire/Free Fire MAX, sensibilidade, HUD, FPS, toque, controles e celulares. Recuse assuntos fora desse escopo em uma frase e traga a conversa de volta. Recomende apenas ajustes legais dentro das configurações do jogo e do aparelho; nunca scripts, macros, injeções, exploits, bypass ou alterações de arquivos. Não prometa uma sensibilidade universal: explique que são pontos iniciais e como testar." },
