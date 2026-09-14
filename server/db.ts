@@ -18,6 +18,7 @@ export async function getDb() {
       await _db.execute(sql`CREATE TABLE IF NOT EXISTS discord_orders (id varchar(32) PRIMARY KEY, "discordId" varchar(64) NOT NULL, "discordName" varchar(255) NOT NULL, plan varchar(32) NOT NULL, "planName" varchar(80) NOT NULL, "amountCents" integer NOT NULL, status text NOT NULL DEFAULT 'pending', "createdAt" timestamp NOT NULL DEFAULT now(), "approvedAt" timestamp, "notifiedAt" timestamp, "discordMessageId" varchar(64))`);
       await _db.execute(sql`ALTER TABLE discord_orders ADD COLUMN IF NOT EXISTS "deviceProfile" text`);
       await _db.execute(sql`CREATE INDEX IF NOT EXISTS discord_orders_discord_id_idx ON discord_orders ("discordId")`);
+      await _db.execute(sql`CREATE TABLE IF NOT EXISTS catalog_products (id varchar(64) PRIMARY KEY, slug varchar(120) NOT NULL UNIQUE, name varchar(160) NOT NULL, category varchar(40) NOT NULL, short_description text NOT NULL, description text NOT NULL, price_cents integer NOT NULL, status varchar(24) NOT NULL DEFAULT 'available', tags jsonb NOT NULL DEFAULT '[]'::jsonb, compatibility jsonb NOT NULL DEFAULT '[]'::jsonb, included jsonb NOT NULL DEFAULT '[]'::jsonb, updated_at timestamp NOT NULL DEFAULT now())`);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
