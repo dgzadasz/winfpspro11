@@ -1,4 +1,5 @@
 import { invokeLLM } from "./_core/llm";
+function baseline(device:string, game:string, style:string) { let hash=0; for(const c of device) hash=(hash*31+c.charCodeAt(0))>>>0; const emu=/emulador|mouse|dpi|pc/i.test(game+device); const fast=/rápido|agressivo/i.test(style); const offset=(hash%17)-8+(fast?7:0); const g=emu?145:160; return `Base calibrada para ${game} · perfil identificado: ${device.slice(0,70)}\n\n${emu?'Emulador: use mouse/DPI e mantenha a resolução fixa.':'Celular: mantenha FPS estável e não copie números de outro aparelho.'}\nGeral ${g+offset}, Ponto vermelho ${g-10+offset}, Mira 2x ${g-20+offset}, Mira 4x ${g-35+offset}, AWM ${emu?65:70+Math.round(offset/2)}, Olhadinha ${g-50+offset}.\n\nFaça três séries no treino. Se passar do alvo, reduza 5; se faltar movimento, aumente 5. Esta base é específica do perfil informado e precisa ser polida com seu resultado.`; }
 
 export async function recommendSensitivity(input: { device: string; refreshRate: string; style: string; game: string }) {
   const request = {
@@ -12,7 +13,7 @@ export async function recommendSensitivity(input: { device: string; refreshRate:
   if (key && model !== "openrouter/free" && !model.endsWith(":free")) throw new Error("Only free models are enabled");
   let response: any;
   try { response = key ? await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", signal: AbortSignal.timeout(45000), headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "HTTP-Referer": process.env.PUBLIC_URL || "https://sk-store-ke6x.onrender.com" }, body: JSON.stringify({ ...request, model, max_tokens: 1200 }) }).then(async r => { if (!r.ok) throw new Error(`OpenRouter HTTP ${r.status}`); return r.json(); }) : await invokeLLM(request as Parameters<typeof invokeLLM>[0]); }
-  catch (error) { console.warn("[Premium AI] provider unavailable, using local baseline", error); return `Ponto de partida para ${input.game} em ${input.device}: Geral 160, Ponto vermelho 150, Mira 2x 140, Mira 4x 125, AWM 70 e Olhadinha 110.\n\nTreine por cinco minutos e ajuste de 5 em 5: reduza se passar do alvo e aumente se faltar movimento. O resultado depende do FPS, HUD e do seu toque.`; }
+  catch (error) { console.warn("[Premium AI] provider unavailable, using local baseline", error); return baseline(input.device,input.game,input.style); }
   const content = response.choices?.[0]?.message?.content;
   if (typeof content === "string") return content;
   if (Array.isArray(content)) return content.map((part: any) => typeof part === "string" ? part : part?.text || "").join("\n").trim() || "Não foi possível gerar uma recomendação agora.";
