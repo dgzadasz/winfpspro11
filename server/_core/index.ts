@@ -26,6 +26,8 @@ async function startServer() {
     throw new Error("Configure JWT_SECRET with at least 32 characters before starting production.");
   }
   const app = express();
+  app.disable("x-powered-by");
+  app.use((_req, res, next) => { res.setHeader("X-Content-Type-Options", "nosniff"); res.setHeader("X-Frame-Options", "SAMEORIGIN"); res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin"); res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()"); next(); });
   const server = createServer(app);
   registerDiscordInteractionRoute(app);
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
