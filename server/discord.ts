@@ -131,7 +131,7 @@ export function registerDiscordInteractionRoute(app: Express) {
         update = { content: `**SK$ STORE · PEDIDO CANCELADO**\nPedido: \`${result.orderId}\`\nCancelado por: <@${actorId}>`, components: [{ type: 1, components: [{ type: 2, style: 4, label: "Pedido cancelado", custom_id: `sk_cancelled:${result.orderId}`, disabled: true }] }] };
       } else {
       const result = await approveOrder(orderId, actorId);
-      update = { content: `**SK$ STORE · PAGAMENTO CONFIRMADO**\nPedido: \`${result.orderId}\`\nCliente: **${result.discordName}**\nConfirmado por: <@${actorId}>`, components: [{ type: 1, components: [{ type: 2, style: 3, label: "Pagamento confirmado", custom_id: `sk_approved:${result.orderId}`, disabled: true }] }] };
+      update = { content: `**SK$ STORE · PAGAMENTO CONFIRMADO**\nPedido: \`${result.orderId}\`\nCliente: **${result.discordName}**\nConfirmado por: <@${actorId}>\n\n✅ Acesso liberado na área do cliente do site.`, components: [{ type: 1, components: [{ type: 2, style: 3, label: "Pagamento confirmado", custom_id: `sk_approved:${result.orderId}`, disabled: true }] }] };
       }
     } catch (error) {
       console.error("[Discord Interaction] order operation failed", error);
