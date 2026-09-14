@@ -9,11 +9,11 @@ export async function recommendSensitivity(input: { device: string; refreshRate:
     ],
   };
   const key = process.env.OPENROUTER_API_KEY;
-  const model = "meta-llama/llama-3.3-70b-instruct:free";
+  const model = "meta-llama/llama-3.3-8b-instruct:free";
   let response: any;
   try {
     if (key) {
-      const candidates = [model, "openrouter/free"].filter((value, index, all) => all.indexOf(value) === index);
+      const candidates = [model, "meta-llama/llama-3.3-70b-instruct:free", "openrouter/free"].filter((value, index, all) => all.indexOf(value) === index);
       let lastError: Error | undefined;
       for (const candidate of candidates) { try { const r = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", signal: AbortSignal.timeout(45000), headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "HTTP-Referer": process.env.PUBLIC_URL || "https://sk-store-ke6x.onrender.com" }, body: JSON.stringify({ ...request, model: candidate, max_tokens: 1200 }) }); if (!r.ok) throw new Error(`OpenRouter HTTP ${r.status}`); response = await r.json(); break; } catch (error) { lastError = error instanceof Error ? error : new Error("provider error"); } }
       if (!response) throw lastError || new Error("No free model available");

@@ -94,7 +94,7 @@ async function startServer() {
     const { device = "", refreshRate = "", style = "", game = "" } = req.body || {};
     if ([device, refreshRate, style, game].some(value => typeof value !== "string" || value.trim().length === 0)) return res.status(400).json({ error: "missing_fields" });
       try { return res.json({ recommendation: await recommendSensitivity({ device, refreshRate, style, game }) }); }
-    catch (error) { console.error("[Premium AI] failed", error); return res.status(503).json({ error: "ai_unavailable" }); }
+      catch (error) { console.error("[Premium AI] failed", error); return res.status(503).json({ error: "ai_unavailable", detail: error instanceof Error ? error.message : "Provedor indisponível" }); }
   });
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
   if (process.env.NODE_ENV === "development") await setupVite(app, server); else serveStatic(app);
