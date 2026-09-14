@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { registerReviewRoutes } from "../reviews";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -30,6 +31,7 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerDiscordRoutes(app);
+  registerReviewRoutes(app);
   app.get("/api/store/orders", async (req, res) => {
     const user = getDiscordUser(req);
     if (!user) return res.status(401).json({ error: "discord_login_required" });

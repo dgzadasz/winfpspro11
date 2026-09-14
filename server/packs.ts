@@ -3,9 +3,9 @@ import { discordOrders } from "../drizzle/schema";
 import { getDb } from "./db";
 
 export const PACK_FILES = {
-  sensiNormal: "sensi-normal.md",
-  sensiPremium: "sensi-premium.md",
-  sensiEmulator: "sensi-emulator.md",
+  sensiNormal: "sensi-normal.zip",
+  sensiPremium: "sensi-premium.zip",
+  sensiEmulator: "sensi-emulator.zip",
 } as const;
 
 export type PackKey = keyof typeof PACK_FILES;
@@ -22,5 +22,5 @@ export async function hasApprovedPremium(discordId: string) {
 }
 
 export function isPackKey(value: string): value is PackKey {
-  return value in PACK_FILES;
+  return Object.prototype.hasOwnProperty.call(PACK_FILES, value);
 }
