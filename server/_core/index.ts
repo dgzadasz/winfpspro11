@@ -29,7 +29,7 @@ async function startServer() {
   const server = createServer(app);
   registerDiscordInteractionRoute(app);
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
-  app.get("/api/catalog", (_req, res) => res.json({ products: CATALOG, categories: [...new Set(CATALOG.map(product => product.category))] }));
+  app.get("/api/catalog", (_req, res) => res.json({ products: CATALOG, categories: Array.from(new Set(CATALOG.map(product => product.category))) }));
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
