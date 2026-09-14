@@ -1,6 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, catalogProducts, users } from "../drizzle/schema";
+import { CATALOG } from "../shared/catalog";
 import { ENV } from './_core/env';
 
 let initializing: Promise<void> | null = null;
@@ -19,6 +20,7 @@ export async function getDb() {
       await _db.execute(sql`ALTER TABLE discord_orders ADD COLUMN IF NOT EXISTS "deviceProfile" text`);
       await _db.execute(sql`CREATE INDEX IF NOT EXISTS discord_orders_discord_id_idx ON discord_orders ("discordId")`);
       await _db.execute(sql`CREATE TABLE IF NOT EXISTS catalog_products (id varchar(64) PRIMARY KEY, slug varchar(120) NOT NULL UNIQUE, name varchar(160) NOT NULL, category varchar(40) NOT NULL, short_description text NOT NULL, description text NOT NULL, price_cents integer NOT NULL, status varchar(24) NOT NULL DEFAULT 'available', tags jsonb NOT NULL DEFAULT '[]'::jsonb, compatibility jsonb NOT NULL DEFAULT '[]'::jsonb, included jsonb NOT NULL DEFAULT '[]'::jsonb, updated_at timestamp NOT NULL DEFAULT now())`);
+      await _db.insert(catalogProducts).values(CATALOG.map(product => ({ id: product.id, slug: product.slug, name: product.name, category: product.category, shortDescription: product.shortDescription, description: product.description, priceCents: product.priceCents, status: product.status, tags: product.tags, compatibility: product.compatibility, included: product.included }))).onConflictDoNothing();
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
