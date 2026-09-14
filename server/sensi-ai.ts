@@ -9,7 +9,7 @@ export async function recommendSensitivity(input: { device: string; refreshRate:
     ],
   };
   const key = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_MODEL || "openrouter/free";
+  const model = "meta-llama/llama-3.3-70b-instruct:free";
   if (key && model !== "openrouter/free" && !model.endsWith(":free")) throw new Error("Only free models are enabled");
   let response: any;
   try {
