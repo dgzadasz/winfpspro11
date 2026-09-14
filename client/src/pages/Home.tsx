@@ -47,11 +47,11 @@ async function readJson<T>(url: string, init?: RequestInit): Promise<T> { const 
 
 export default function Home() {
 
-  const [user, setUser] = useState<DiscordUser | null>(null); const [orders, setOrders] = useState<Order[]>([]); const [loading, setLoading] = useState(true); const [message, setMessage] = useState(""); const [items, setItems] = useState(cartCount()); const [introVisible, setIntroVisible] = useState(() => sessionStorage.getItem("sk_intro_seen") !== "1"); const [loginOpen, setLoginOpen] = useState(false);
+  const [user, setUser] = useState<DiscordUser | null>(null); const [orders, setOrders] = useState<Order[]>([]); const [loading, setLoading] = useState(true); const [message, setMessage] = useState(""); const [items, setItems] = useState(cartCount()); const [introVisible, setIntroVisible] = useState(true); const [loginOpen, setLoginOpen] = useState(false);
 
   const refresh = async () => { const session = await readJson<{ user: DiscordUser | null }>("/api/discord/session"); setUser(session.user); if (!session.user) return setOrders([]); const mine = await readJson<{ orders: Order[] }>("/api/store/orders"); setOrders(mine.orders); };
 
-useEffect(() => { refresh().catch(() => setMessage("Não foi possível carregar a sessão Discord.")).finally(() => setLoading(false)); const onCart = () => setItems(cartCount()); window.addEventListener("sk-cart-updated", onCart); window.addEventListener("storage", onCart); const timer=window.setTimeout(()=>{sessionStorage.setItem("sk_intro_seen","1");setIntroVisible(false);},3500); return () => { window.clearTimeout(timer); window.removeEventListener("sk-cart-updated", onCart); window.removeEventListener("storage", onCart); }; }, []);
+useEffect(() => { refresh().catch(() => setMessage("Não foi possível carregar a sessão Discord.")).finally(() => setLoading(false)); const onCart = () => setItems(cartCount()); window.addEventListener("sk-cart-updated", onCart); window.addEventListener("storage", onCart); const timer=window.setTimeout(()=>{setIntroVisible(false);},3500); return () => { window.clearTimeout(timer); window.removeEventListener("sk-cart-updated", onCart); window.removeEventListener("storage", onCart); }; }, []);
 
   const login = () => { window.location.href = "/api/discord/login"; }; const logout = async () => { await readJson("/api/discord/logout", { method: "POST" }); setUser(null); setOrders([]); }; const formatAmount = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 
@@ -76,6 +76,7 @@ useEffect(() => { refresh().catch(() => setMessage("Não foi possível carregar 
       <section id="download" className="download-banner"><div className="download-icon"><Download size={28} /></div><div><span className="section-index">05 / DOWNLOADS</span><h2>Materiais protegidos</h2><p>Os packs aprovados aparecem para download na sua conta.</p></div><Button variant="outline" disabled><LockKeyhole size={16} /> Acesso por compra</Button></section></main><footer><span>SK$ STORE</span><span>Pix: DIEGO · SAO PAULO</span><a href="https://discord.gg/xJY2PZ6Zx" target="_blank" rel="noreferrer">Suporte pelo Discord ↗</a></footer>{message && <div className="feedback">{message}</div>}</div>;
 
 }
+
 
 
 
