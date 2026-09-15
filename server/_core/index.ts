@@ -21,6 +21,7 @@ import { getDb } from "../db";
 import { serveStatic, setupVite } from "./vite";
 import { randomUUID } from "crypto";
 import { selectOwnedPack } from "../pack-access";
+import { registerSupportRoutes } from "../support";
 
 function isPortAvailable(port: number): Promise<boolean> { return new Promise(resolve => { const server = net.createServer(); server.listen(port, () => server.close(() => resolve(true))); server.on("error", () => resolve(false)); }); }
 async function findAvailablePort(startPort = 3000): Promise<number> { for (let port = startPort; port < startPort + 20; port++) if (await isPortAvailable(port)) return port; throw new Error(`No available port found starting from ${startPort}`); }
@@ -45,6 +46,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerDiscordRoutes(app);
   registerReviewRoutes(app);
+  registerSupportRoutes(app);
   app.get("/api/store/orders", async (req, res) => {
     const user = getDiscordUser(req);
     if (!user) return res.status(401).json({ error: "discord_login_required" });

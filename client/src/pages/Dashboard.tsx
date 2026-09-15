@@ -1,3 +1,4 @@
+import PurchaseReview from "@/components/PurchaseReview";
 import { Link } from "wouter";
 import { Download, ExternalLink, ShieldCheck, BookOpen, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -46,11 +47,13 @@ export default function Dashboard() {
         <p className="dashboard-lead">{user.displayName} · Discord conectado</p>
         <div className="dashboard-stats"><div><small>PRODUTOS LIBERADOS</small><strong>{approved.length}</strong></div><div><small>AGUARDANDO APROVAÇÃO</small><strong>{orders.filter(order => order.status === "pending").length}</strong></div></div>
         <section className="dashboard-orders"><h2>Meus produtos</h2>
-          {approved.length === 0 ? <p className="dashboard-lead">Seus materiais aparecerão aqui após a confirmação do Pix pelo administrador.</p> : approved.map(order => <article className="dashboard-order" key={order.id}><div><strong>{order.planName}</strong><small>{deviceLabel(order)}</small><small>Pedido {order.id}</small></div><div className="dashboard-actions"><a href={`/api/packs/${order.plan}/guide?order=${encodeURIComponent(order.id)}`}><BookOpen size={15}/> Abrir guia</a><a href={`/api/packs/${order.plan}/download?order=${encodeURIComponent(order.id)}`}><Download size={15}/> Baixar ZIP</a>{order.plan === "sensiPremium" && <Link href="/premium-ai">Conversar com IA</Link>}</div></article>)}
+          {approved.length === 0 ? <p className="dashboard-lead">Seus materiais aparecerão aqui após a confirmação do Pix pelo administrador.</p> : approved.map(order => <article className="dashboard-order" key={order.id}><div><strong>{order.planName}</strong><small>{deviceLabel(order)}</small><small>Pedido {order.id}</small></div><div className="dashboard-actions"><a href={`/api/packs/${order.plan}/guide?order=${encodeURIComponent(order.id)}`}><BookOpen size={15}/> Abrir guia</a><a href={`/api/packs/${order.plan}/download?order=${encodeURIComponent(order.id)}`}><Download size={15}/> Baixar ZIP</a>{order.plan === "sensiPremium" && <Link href="/premium-ai">Conversar com IA</Link>}</div><PurchaseReview orderId={order.id} productName={order.planName}/></article>)}
         </section>
         <section className="dashboard-orders"><h2>Histórico de pedidos</h2>{orders.length === 0 ? <p className="dashboard-lead">Você ainda não fez um pedido. <Link href="/catalog">Ver packs disponíveis</Link></p> : orders.map(order => <article className="dashboard-order" key={order.id}><div><strong>{order.planName}</strong><small>{new Date(order.createdAt).toLocaleDateString("pt-BR")} · {(order.amountCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</small></div><span className={`status status-${order.status}`}>{statusLabels[order.status]}</span>{order.status === "pending" && <Link href={`/checkout/${order.plan}?order=${encodeURIComponent(order.id)}`}>Ver Pix / cancelar</Link>}</article>)}</section>
-        <div className="dashboard-actions"><button onClick={() => setRevision(value => value + 1)}>Atualizar pedidos</button><a href="https://discord.gg/xJY2PZ6Zx" target="_blank" rel="noreferrer">Suporte no Discord ↗</a></div>
+        <div className="dashboard-actions"><Link href="/support">Meus chamados</Link><Link href="/reviews">Avaliações</Link><button onClick={() => setRevision(value => value + 1)}>Atualizar pedidos</button><a href="https://discord.gg/xJY2PZ6Zx" target="_blank" rel="noreferrer">Suporte no Discord ↗</a></div>
       </>}
     </section>
   </main>;
 }
+
+

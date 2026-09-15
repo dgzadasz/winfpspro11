@@ -13,8 +13,8 @@ export function validateReview(body: any) {
 
 export function registerReviewRoutes(app: Express) {
   if (typeof (app as any).get === 'function') app.get('/api/store/reviews', async (_req, res) => {
-    try { const db = await getDb(); if (!db) return res.json({ reviews: [] }); const result = await db.execute(sql`SELECT r.order_id AS "orderId", r.rating, r.comment, r.created_at AS "createdAt", o.plan_name AS "planName" FROM store_reviews r JOIN discord_orders o ON o.id = r.order_id WHERE r.sent = true ORDER BY r.created_at DESC LIMIT 30`); return res.json({ reviews: result.rows }); }
-    catch (error) { console.error('[Reviews] list failed', error); return res.json({ reviews: [] }); }
+    try { const db = await getDb(); if (!db) return res.status(503).json({ error: 'As avaliações estão temporariamente indisponíveis.' }); const result = await db.execute(sql`SELECT r.order_id AS "orderId", r.rating, r.comment, r.created_at AS "createdAt", o."planName" AS "planName" FROM store_reviews r JOIN discord_orders o ON o.id = r.order_id WHERE o.status = 'approved' ORDER BY r.created_at DESC LIMIT 30`); return res.json({ reviews: result.rows }); }
+    catch (error) { console.error('[Reviews] list failed', error); return res.status(503).json({ error: 'Não foi possível carregar as avaliações.' }); }
   });
   app.post('/api/store/orders/:id/review', async (req, res) => {
     const user = getDiscordUser(req);
