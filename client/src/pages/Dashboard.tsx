@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 type User = { id: string; displayName: string };
 type Order = { id: string; plan: string; planName: string; amountCents: number; status: "pending" | "approved" | "cancelled"; createdAt: string; deviceProfile?: string | null };
+type License = { id: string; orderId: string; plan: string; status: string; createdAt: string; expiresAt: string | null };
 const statusLabels = { pending: "Aguardando confirmação", approved: "Aprovado", cancelled: "Cancelado" };
 function deviceLabel(order: Order) {
   if (order.plan === "sensiEmulator") return "PC / Emulador";
@@ -14,6 +15,7 @@ function deviceLabel(order: Order) {
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
@@ -31,6 +33,8 @@ export default function Dashboard() {
         if (!response.ok) throw new Error("Não foi possível carregar seus pedidos. Tente novamente.");
         const data = await response.json();
         setOrders(data.orders);
+        const licenseResponse = await fetch("/api/store/licenses", { signal: controller.signal });
+        if (licenseResponse.ok) setLicenses((await licenseResponse.json()).licenses || []);
       } catch (cause) {
         if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Falha de conexão.");
       } finally { if (!controller.signal.aborted) setLoading(false); }
@@ -50,6 +54,7 @@ export default function Dashboard() {
           {approved.length === 0 ? <p className="dashboard-lead">Seus materiais aparecerão aqui após a confirmação do Pix pelo administrador.</p> : approved.map(order => <article className="dashboard-order" key={order.id}><div><strong>{order.planName}</strong><small>{deviceLabel(order)}</small><small>Pedido {order.id}</small></div><div className="dashboard-actions"><a href={`/api/packs/${order.plan}/guide?order=${encodeURIComponent(order.id)}`}><BookOpen size={15}/> Abrir guia</a><a href={`/api/packs/${order.plan}/download?order=${encodeURIComponent(order.id)}`}><Download size={15}/> Baixar ZIP</a>{order.plan === "sensiPremium" && <Link href="/premium-ai">Conversar com IA</Link>}</div><PurchaseReview orderId={order.id} productName={order.planName}/></article>)}
         </section>
         <section className="dashboard-orders"><h2>Histórico de pedidos</h2>{orders.length === 0 ? <p className="dashboard-lead">Você ainda não fez um pedido. <Link href="/catalog">Ver packs disponíveis</Link></p> : orders.map(order => <article className="dashboard-order" key={order.id}><div><strong>{order.planName}</strong><small>{new Date(order.createdAt).toLocaleDateString("pt-BR")} · {(order.amountCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</small></div><span className={`status status-${order.status}`}>{statusLabels[order.status]}</span>{order.status === "pending" && <Link href={`/checkout/${order.plan}?order=${encodeURIComponent(order.id)}`}>Ver Pix / cancelar</Link>}</article>)}</section>
+        <section className="dashboard-orders"><h2>Licenças</h2>{licenses.length === 0 ? <p className="dashboard-lead">Uma licença é criada automaticamente quando o administrador confirma seu pagamento.</p> : licenses.map(license => <article className="dashboard-order" key={license.id}><div><strong>{license.plan}</strong><small>Licença {license.id}</small><small>{license.expiresAt ? `Expira em ${new Date(license.expiresAt).toLocaleDateString("pt-BR")}` : "Acesso vitalício"}</small></div><span className={`status status-${license.status.toLowerCase()}`}>{license.status === "ACTIVE" ? "Ativa" : license.status}</span></article>)}</section>
         <div className="dashboard-actions"><Link href="/support">Meus chamados</Link><Link href="/reviews">Avaliações</Link><button onClick={() => setRevision(value => value + 1)}>Atualizar pedidos</button><a href="https://discord.gg/xJY2PZ6Zx" target="_blank" rel="noreferrer">Suporte no Discord ↗</a></div>
       </>}
     </section>
