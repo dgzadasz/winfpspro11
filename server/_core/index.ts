@@ -20,6 +20,7 @@ import { catalogProducts } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { serveStatic, setupVite } from "./vite";
 import { randomUUID } from "crypto";
+import { selectOwnedPack } from "../pack-access";
 
 function isPortAvailable(port: number): Promise<boolean> { return new Promise(resolve => { const server = net.createServer(); server.listen(port, () => server.close(() => resolve(true))); server.on("error", () => resolve(false)); }); }
 async function findAvailablePort(startPort = 3000): Promise<number> { for (let port = startPort; port < startPort + 20; port++) if (await isPortAvailable(port)) return port; throw new Error(`No available port found starting from ${startPort}`); }
@@ -79,9 +80,10 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: "discord_login_required" });
     if (!isPackKey(pack) || !(await hasApprovedPack(user.id, pack))) return res.status(403).json({ error: "pack_purchase_required" });
     const orders = await getOrdersForUser(user.id);
-    const requested = typeof req.query.order === "string" ? req.query.order : null;
-    const owned = orders.find(o => o.plan === pack && o.status === "approved" && (!requested || o.id === requested));
+    const owned = selectOwnedPack(orders, user.id, pack, req.query.order);
     if (!owned) return res.status(403).json({error:"pack_purchase_required"});
+    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
     if (owned.deviceProfile && pack !== "sensiEmulator") {
       try { const profile = JSON.parse(owned.deviceProfile); if (validDeviceProfile(profile)) return res.type("application/zip").attachment(PACK_FILES[pack]).send(personalizedPack(profile, pack === "sensiPremium")); }
       catch { return res.status(503).json({error:"Não foi possível preparar seu ZIP. Tente novamente."}); }
@@ -91,8 +93,10 @@ async function startServer() {
     app.get("/api/packs/:pack/guide", async (req, res) => {
       const user = getDiscordUser(req); const pack = req.params.pack;
       if (!user || !isPackKey(pack)) return res.status(401).send("Conecte-se com Discord para abrir seu guia.");
-      const orders = await getOrdersForUser(user.id); const owned = orders.find(o => o.plan === pack && o.status === "approved");
+      const orders = await getOrdersForUser(user.id); const owned = selectOwnedPack(orders, user.id, pack, req.query.order);
       if (!owned) return res.status(403).send("Este guia só fica disponível após a aprovação da compra.");
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("X-Robots-Tag", "noindex, nofollow");
       if (pack === "sensiEmulator") return res.type("html").send(emulatorGuide());
       try { const profile = owned.deviceProfile ? JSON.parse(owned.deviceProfile) : null; return res.type("html").send(validDeviceProfile(profile) ? deviceGuide(profile) : "<h1>Perfil não encontrado</h1><p>Fale com o suporte para atualizar seu pedido.</p>"); }
       catch { return res.status(503).send("Não foi possível abrir o guia."); }
