@@ -7,7 +7,7 @@ import { track } from "@/lib/analytics";
 export default function Product() {
   const [, params] = useRoute("/product/:slug");
   const [product, setProduct] = useState<CatalogProduct | null | undefined>(undefined);
-  useEffect(() => { if (!params?.slug) return; setProduct(undefined); fetch("/api/catalog").then(response => response.json()).then(data => setProduct((data.products || []).find((item: CatalogProduct) => item.slug === params.slug) || null)).catch(() => setProduct(null)); }, [params?.slug]);
+  useEffect(() => { if (!params?.slug) return; setProduct(undefined); fetch(`/api/catalog/${encodeURIComponent(params.slug)}`).then(response => response.ok ? response.json() : Promise.reject()).then(data => setProduct(data.product || null)).catch(() => setProduct(null)); }, [params?.slug]);
   useEffect(() => { if (product) track("product_view", product.slug); }, [product?.slug]);
   if (product === undefined) return <main className="catalog-page"><section className="catalog-hero"><p role="status">Carregando produto…</p></section></main>;
   if (!product) return <main className="catalog-page"><section className="catalog-hero"><h1>Produto não encontrado</h1><Link href="/catalog">Voltar</Link></section></main>;

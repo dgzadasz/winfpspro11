@@ -20,7 +20,7 @@ import { catalogProducts } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { serveStatic, setupVite } from "./vite";
 import { randomUUID } from "crypto";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { selectOwnedPack } from "../pack-access";
 import { registerSupportRoutes } from "../support";
 import { registerAnalyticsRoutes } from "../analytics";
@@ -42,6 +42,7 @@ async function startServer() {
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
   app.get("/api/payment/mode", (_req, res) => res.json({ mode: "manual", automaticGatewayConfigured: false, confirmation: "discord_admin" }));
   app.get("/api/catalog", async (_req, res) => { try { const db = await getDb(); const products = db ? await db.select().from(catalogProducts) : CATALOG; return res.json({ products, categories: Array.from(new Set(products.map(product => product.category))) }); } catch (error) { console.error("[Catalog] read failed", error); return res.json({ products: CATALOG, categories: Array.from(new Set(CATALOG.map(product => product.category))) }); } });
+  app.get("/api/catalog/:slug", async (req, res) => { try { const db = await getDb(); const product = db ? (await db.select().from(catalogProducts).where(eq(catalogProducts.slug, req.params.slug)).limit(1))[0] : CATALOG.find(item => item.slug === req.params.slug); if (!product) return res.status(404).json({ error: "product_not_found" }); res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300"); return res.json({ product }); } catch (error) { console.error("[Catalog] product read failed", error); const product = CATALOG.find(item => item.slug === req.params.slug); return product ? res.json({ product }) : res.status(404).json({ error: "product_not_found" }); } });
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
