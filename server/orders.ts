@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import QRCode from "qrcode";
 import { discordOrders } from "../drizzle/schema";
+import { sql } from "drizzle-orm";
 import type { DiscordUser } from "./discord";
 import { getDb } from "./db";
 
@@ -132,6 +133,10 @@ export async function approveOrder(orderId: string, adminId: string) {
   if (order.status === "pending") await db.update(discordOrders).set({ status: "approved", approvedAt: new Date() }).where(and(eq(discordOrders.id, orderId), eq(discordOrders.status, "pending")));
   const latest = await db.select().from(discordOrders).where(eq(discordOrders.id, orderId)).limit(1);
   if (latest[0]?.status !== "approved") throw new Error("Order was cancelled concurrently");
+  const durationDays = PLANS[order.plan as PlanKey].days;
+  const expiresAt = durationDays ? new Date(Date.now() + durationDays * 86400000) : null;
+  const licenseId = `SK-${crypto.randomBytes(12).toString("hex").toUpperCase()}`;
+  await db.execute(sql`INSERT INTO licenses (id, order_id, discord_id, plan, status, expires_at) VALUES (${licenseId}, ${order.id}, ${order.discordId}, ${order.plan}, 'ACTIVE', ${expiresAt}) ON CONFLICT (order_id) DO NOTHING`);
   return { success: true, orderId, planName: order.planName, discordName: order.discordName, adminId };
 }
 

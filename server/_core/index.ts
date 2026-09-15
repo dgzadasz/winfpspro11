@@ -20,6 +20,7 @@ import { catalogProducts } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { serveStatic, setupVite } from "./vite";
 import { randomUUID } from "crypto";
+import { sql } from "drizzle-orm";
 import { selectOwnedPack } from "../pack-access";
 import { registerSupportRoutes } from "../support";
 
@@ -51,6 +52,11 @@ async function startServer() {
     const user = getDiscordUser(req);
     if (!user) return res.status(401).json({ error: "discord_login_required" });
     return res.json({ orders: await getOrdersForUser(user.id) });
+  });
+  app.get("/api/store/licenses", async (req, res) => {
+    const user = getDiscordUser(req);
+    if (!user) return res.status(401).json({ error: "discord_login_required" });
+    try { const db = await getDb(); if (!db) return res.status(503).json({ error: "licenses_unavailable" }); const result = await db.execute(sql`SELECT id, order_id AS "orderId", plan, status, created_at AS "createdAt", expires_at AS "expiresAt" FROM licenses WHERE discord_id = ${user.id} ORDER BY created_at DESC`); res.setHeader("Cache-Control", "private, no-store"); return res.json({ licenses: result.rows }); } catch (error) { console.error("[Licenses] read failed", error); return res.status(503).json({ error: "licenses_unavailable" }); }
   });
   app.get("/api/store/orders/:id", async (req, res) => {
     const user = getDiscordUser(req);
