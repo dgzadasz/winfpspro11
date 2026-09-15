@@ -49,7 +49,7 @@ export async function pixQrDataUrl(order: { id: string; plan: PlanKey }) {
   return QRCode.toDataURL(pixPayload(order), { errorCorrectionLevel: "M", margin: 2, width: 420 });
 }
 
-async function postBotMessage(order: { id: string; plan: PlanKey; discordName: string; discordId: string }) {
+async function postBotMessage(order: { id: string; plan: PlanKey; discordName: string; discordId: string; deviceProfile?: DeviceProfile }) {
   const token = process.env.DISCORD_BOT_TOKEN;
   const channelId = process.env.DISCORD_LOG_CHANNEL_ID;
   if (!token || !channelId) return null;
@@ -64,6 +64,7 @@ async function postBotMessage(order: { id: string; plan: PlanKey; discordName: s
         { name: "Pedido", value: `\`${order.id}\``, inline: true },
         { name: "Plano", value: `${plan.name} · R$ ${(plan.amountCents / 100).toFixed(2).replace(".", ",")}`, inline: true },
         { name: "Cliente Discord", value: `${order.discordName} · \`${order.discordId}\`` },
+        ...(order.deviceProfile ? [{ name: "Perfil escolhido", value: `${order.deviceProfile.brand} ${order.deviceProfile.model} · ${order.deviceProfile.game}` }] : []),
         { name: "Pix", value: "Confira o recebimento no banco antes de confirmar." },
       ],
       image: { url: "attachment://pix.png" },
@@ -92,7 +93,7 @@ export async function createOrder(user: DiscordUser, planKey: PlanKey, devicePro
   await db.insert(discordOrders).values({ id, discordId: user.id, discordName: user.displayName, plan: planKey, planName: plan.name, amountCents: plan.amountCents, deviceProfile: deviceProfile ? JSON.stringify(deviceProfile) : null, status: "pending" });
   let messageId: string | null = null;
   try {
-    const message = await postBotMessage({ id, plan: planKey, discordName: user.displayName, discordId: user.id });
+    const message = await postBotMessage({ id, plan: planKey, discordName: user.displayName, discordId: user.id, deviceProfile });
     messageId = message?.id || null;
   } catch (error) {
     console.error("[Discord Bot] order notification failed", error);
