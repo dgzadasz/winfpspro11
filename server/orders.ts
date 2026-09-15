@@ -90,6 +90,9 @@ export async function createOrder(user: DiscordUser, planKey: PlanKey, devicePro
   if (!db) throw new Error("Database unavailable");
   const plan = PLANS[planKey];
   const id = crypto.randomBytes(10).toString("hex").toUpperCase();
+  // Prepare payment before persisting: invalid configuration must not create an orphan order.
+  const pix = pixPayload({ id, plan: planKey });
+  const qr = await pixQrDataUrl({ id, plan: planKey });
   await db.insert(discordOrders).values({ id, discordId: user.id, discordName: user.displayName, plan: planKey, planName: plan.name, amountCents: plan.amountCents, deviceProfile: deviceProfile ? JSON.stringify(deviceProfile) : null, status: "pending" });
   let messageId: string | null = null;
   try {
@@ -99,7 +102,7 @@ export async function createOrder(user: DiscordUser, planKey: PlanKey, devicePro
     console.error("[Discord Bot] order notification failed", error);
   }
   if (messageId) await db.update(discordOrders).set({ notifiedAt: new Date(), discordMessageId: messageId }).where(eq(discordOrders.id, id));
-  return { id, plan: planKey, planName: plan.name, amountCents: plan.amountCents, pix: pixPayload({ id, plan: planKey }), qr: await pixQrDataUrl({ id, plan: planKey }), notified: Boolean(messageId) };
+  return { id, plan: planKey, planName: plan.name, amountCents: plan.amountCents, pix, qr, notified: Boolean(messageId) };
 }
 
 export async function getOrdersForUser(discordId: string) {
