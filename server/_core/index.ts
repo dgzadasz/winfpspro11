@@ -60,6 +60,17 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: "discord_login_required" });
     try { const db = await getDb(); if (!db) return res.status(503).json({ error: "licenses_unavailable" }); const result = await db.execute(sql`SELECT id, order_id AS "orderId", plan, status, created_at AS "createdAt", expires_at AS "expiresAt" FROM licenses WHERE discord_id = ${user.id} ORDER BY created_at DESC`); res.setHeader("Cache-Control", "private, no-store"); return res.json({ licenses: result.rows }); } catch (error) { console.error("[Licenses] read failed", error); return res.status(503).json({ error: "licenses_unavailable" }); }
   });
+  app.post("/api/admin/licenses/:id/revoke", async (req, res) => {
+    const user = getDiscordUser(req);
+    if (!user || !process.env.DISCORD_ADMIN_ID || user.id !== process.env.DISCORD_ADMIN_ID) return res.status(403).json({ error: "admin_required" });
+    try {
+      const db = await getDb(); if (!db) return res.status(503).json({ error: "licenses_unavailable" });
+      const result = await db.execute(sql`UPDATE licenses SET status = 'REVOKED' WHERE id = ${req.params.id} AND status <> 'REVOKED' RETURNING id`);
+      if (!result.rows.length) return res.status(404).json({ error: "license_not_found" });
+      console.info(`[audit] license_revoked ${String(req.params.id).slice(0, 40)} by ${user.id}`);
+      return res.json({ success: true, status: "REVOKED" });
+    } catch { return res.status(503).json({ error: "license_update_failed" }); }
+  });
   app.get("/api/store/orders/:id", async (req, res) => {
     const user = getDiscordUser(req);
     if (!user) return res.status(401).json({ error: "discord_login_required" });
