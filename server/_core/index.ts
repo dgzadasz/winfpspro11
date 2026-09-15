@@ -101,10 +101,10 @@ async function startServer() {
     const user = getDiscordUser(req);
     const pack = req.params.pack;
     if (!user) return res.status(401).json({ error: "discord_login_required" });
-    if (!isPackKey(pack) || !(await hasApprovedPack(user.id, pack))) return res.status(403).json({ error: "pack_purchase_required" });
+    if (!isPackKey(pack)) return res.status(403).json({ error: "pack_purchase_required" });
     const orders = await getOrdersForUser(user.id);
     const owned = selectOwnedPack(orders, user.id, pack, req.query.order);
-    if (!owned) return res.status(403).json({error:"pack_purchase_required"});
+    if (!owned || !(await hasApprovedPack(user.id, pack, owned.id))) return res.status(403).json({error:"pack_purchase_required"});
     res.setHeader("Cache-Control", "private, no-store");
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
     if (owned.deviceProfile && pack !== "sensiEmulator") {
@@ -117,7 +117,7 @@ async function startServer() {
       const user = getDiscordUser(req); const pack = req.params.pack;
       if (!user || !isPackKey(pack)) return res.status(401).send("Conecte-se com Discord para abrir seu guia.");
       const orders = await getOrdersForUser(user.id); const owned = selectOwnedPack(orders, user.id, pack, req.query.order);
-      if (!owned) return res.status(403).send("Este guia só fica disponível após a aprovação da compra.");
+      if (!owned || !(await hasApprovedPack(user.id, pack, owned.id))) return res.status(403).send("Este guia exige uma compra aprovada com acesso ativo.");
       res.setHeader("Cache-Control", "private, no-store");
       res.setHeader("X-Robots-Tag", "noindex, nofollow");
       if (pack === "sensiEmulator") return res.type("html").send(emulatorGuide());
