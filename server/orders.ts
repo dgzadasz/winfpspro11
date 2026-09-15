@@ -77,6 +77,7 @@ async function postBotMessage(order: { id: string; plan: PlanKey; discordName: s
   form.append("files[0]", new Blob([new Uint8Array(qrBuffer)], { type: "image/png" }), "pix.png");
   const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
     method: "POST", headers: { Authorization: `Bot ${token}` }, body: form,
+    signal: AbortSignal.timeout(8000),
   });
   if (!response.ok) {
     console.error("[Discord Bot] failed to publish order", response.status, await response.text());
@@ -117,7 +118,7 @@ export async function getOrderForUser(orderId: string, discordId: string) {
   const rows = await db.select().from(discordOrders).where(and(eq(discordOrders.id, orderId), eq(discordOrders.discordId, discordId))).limit(1);
   const order = rows[0];
   if (!order) return null;
-  return { ...order, pix: pixPayload({ id: order.id, plan: order.plan as PlanKey }), qr: await pixQrDataUrl({ id: order.id, plan: order.plan as PlanKey }) };
+  return { ...order, notified: Boolean(order.discordMessageId), pix: pixPayload({ id: order.id, plan: order.plan as PlanKey }), qr: await pixQrDataUrl({ id: order.id, plan: order.plan as PlanKey }) };
 }
 
 export async function getPendingOrders() {
