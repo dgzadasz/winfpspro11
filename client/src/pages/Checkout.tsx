@@ -5,6 +5,7 @@ import { Link, useParams } from "wouter";
 import { ArrowLeft, Check, Clipboard, LockKeyhole, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { removeFromCart } from "@/lib/cart";
+import { track } from "@/lib/analytics";
 
 const plans = { daily: { name: "Daily Pass", duration: "1 dia de acesso", price: "R$ 10,00" }, weekly: { name: "Weekly Pass", duration: "7 dias de acesso", price: "R$ 40,00" }, monthly: { name: "Monthly Pass", duration: "30 dias de acesso", price: "R$ 120,00" }, lifetime: { name: "Lifetime", duration: "Acesso vitalício", price: "R$ 300,00" }, sensiNormal: { name: "Pack Sensi Normal", duration: "Presets Android e iPhone", price: "R$ 19,90" }, sensiPremium: { name: "Pack Sensi Premium", duration: "Presets exclusivos + IA", price: "R$ 39,90" }, sensiEmulator: { name: "Pack Sensi Emulador", duration: "Configuração para PC", price: "R$ 29,90" } } as const;
 type PlanKey = keyof typeof plans;
@@ -13,6 +14,7 @@ async function json<T>(url: string, init?: RequestInit) { const response = await
 
 export default function Checkout() {
   const { plan: rawPlan } = useParams<{ plan: string }>(); const plan = rawPlan as PlanKey; const selected = plans[plan];
+  useEffect(() => { track("checkout_started", plan); }, [plan]);
   const mobilePack = plan === "sensiNormal" || plan === "sensiPremium";
   const [profile, setProfile] = useState<DeviceProfile>(() => { try { const saved=JSON.parse(sessionStorage.getItem("sk-device-profile") || "null"); if(validDeviceProfile(saved)) return saved; } catch {} return {brand:"Samsung",model:"",game:"Free Fire",style:"Equilibrado"}; });
   useEffect(() => { try { sessionStorage.setItem("sk-device-profile",JSON.stringify(profile)); } catch {} }, [profile]);

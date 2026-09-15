@@ -3,6 +3,7 @@ import { StoreIntro } from "@/components/StoreIntro";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import OrderReview from "@/components/OrderReview";
 import { useEffect, useState } from "react";
+import { track } from "@/lib/analytics";
 
 import { Link } from "wouter";
 
@@ -48,6 +49,7 @@ async function readJson<T>(url: string, init?: RequestInit): Promise<T> { const 
 
 
 export default function Home() {
+  useEffect(() => { track("page_view"); }, []);
 
   const [user, setUser] = useState<DiscordUser | null>(null); const [orders, setOrders] = useState<Order[]>([]); const [loading, setLoading] = useState(true); const [message, setMessage] = useState(""); const [items, setItems] = useState(cartCount()); const [introVisible, setIntroVisible] = useState(true); const [loginOpen, setLoginOpen] = useState(false); useScrollReveal();
 
