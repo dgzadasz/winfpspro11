@@ -8,7 +8,8 @@ type RawRequest = Request & { rawBody?: Buffer };
 const SESSION_COOKIE = "sk_discord_session";
 const STATE_COOKIE = "sk_discord_oauth_state";
 const DEFAULT_REDIRECT_URI = "https://skstore-m5ftihig.manus.space/api/discord/callback";
-const CONFIRM_ROLE_ID = "1496963722210705551";
+const DEFAULT_CONFIRM_ROLE_ID = "1496963722210705551";
+function confirmRoleId() { return process.env.DISCORD_CONFIRM_ROLE_ID?.trim() || DEFAULT_CONFIRM_ROLE_ID; }
 
 function secret() { return process.env.JWT_SECRET || "sk-store-discord-session-development-secret"; }
 function base64url(value: string | Buffer) { return Buffer.from(value).toString("base64url"); }
@@ -113,7 +114,7 @@ export function registerDiscordInteractionRoute(app: Express) {
     const customId = interaction.data?.custom_id || "";
     const action = customId.startsWith("sk_approve:") ? "approve" : customId.startsWith("sk_cancel:") ? "cancel" : "";
     const orderId = action ? customId.slice(customId.indexOf(":") + 1) : "";
-    const hasConfirmRole = interaction.member?.roles?.includes(CONFIRM_ROLE_ID) === true;
+    const hasConfirmRole = interaction.member?.roles?.includes(confirmRoleId()) === true;
     const isAdmin = actorId === process.env.DISCORD_ADMIN_ID || hasConfirmRole;
     if (!orderId || !actorId || !isAdmin || interaction.channel_id !== process.env.DISCORD_LOG_CHANNEL_ID) return res.json({ type: 4, data: { content: "Você não tem permissão para confirmar este pedido.", flags: 64 } });
     if (!interaction.application_id || !interaction.token) return res.status(400).send("missing interaction credentials");
