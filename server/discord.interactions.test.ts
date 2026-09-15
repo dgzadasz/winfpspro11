@@ -29,6 +29,7 @@ describe("Discord HTTP interactions", () => {
   it("rejects a modified signed body", async () => { expect((await request({ type: 1 }, true)).status).toBe(401); });
   it("rejects a missing or different application key", async () => { vi.stubEnv("DISCORD_PUBLIC_KEY", ""); expect((await request({ type: 1 })).status).toBe(401); });
   it("does not change orders for another user", async () => { const r = await request({ ...button, member: { user: { id: "other" } } }); expect((await r.json()).data.flags).toBe(64); expect(approveOrder).not.toHaveBeenCalled(); });
+  it("allows a member with the confirmation role", async () => { vi.mocked(approveOrder).mockResolvedValue({ orderId: "ORDER", discordName: "Client" } as any); const r = await request({ ...button, member: { user: { id: "moderator" }, roles: ["1496963722210705551"] } }); expect(await r.json()).toEqual({ type: 6 }); await vi.waitFor(() => expect(approveOrder).toHaveBeenCalledWith("ORDER", "moderator")); });
   it("acknowledges while the database is still waiting, then updates the message", async () => {
     let finish!: (value: any) => void;
     vi.mocked(approveOrder).mockImplementation(() => new Promise(resolve => { finish = resolve; }));

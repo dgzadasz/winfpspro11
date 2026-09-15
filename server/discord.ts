@@ -8,6 +8,7 @@ type RawRequest = Request & { rawBody?: Buffer };
 const SESSION_COOKIE = "sk_discord_session";
 const STATE_COOKIE = "sk_discord_oauth_state";
 const DEFAULT_REDIRECT_URI = "https://skstore-m5ftihig.manus.space/api/discord/callback";
+const CONFIRM_ROLE_ID = "1496963722210705551";
 
 function secret() { return process.env.JWT_SECRET || "sk-store-discord-session-development-secret"; }
 function base64url(value: string | Buffer) { return Buffer.from(value).toString("base64url"); }
@@ -102,7 +103,7 @@ export function registerDiscordInteractionRoute(app: Express) {
     const rawReq = req as RawRequest;
     rawReq.rawBody = Buffer.isBuffer(req.body) ? req.body : rawReq.rawBody;
     if (!verifyInteraction(rawReq)) return res.status(401).send("invalid request signature");
-    let interaction: { type?: number; application_id?: string; token?: string; data?: { custom_id?: string }; member?: { user?: { id?: string } }; channel_id?: string };
+    let interaction: { type?: number; application_id?: string; token?: string; data?: { custom_id?: string }; member?: { user?: { id?: string }; roles?: string[] }; channel_id?: string };
     try { interaction = JSON.parse(rawReq.rawBody!.toString("utf8")); }
     catch { return res.status(400).send("invalid JSON"); }
     if (!interaction || typeof interaction !== "object") return res.status(400).send("invalid interaction");
@@ -112,7 +113,9 @@ export function registerDiscordInteractionRoute(app: Express) {
     const customId = interaction.data?.custom_id || "";
     const action = customId.startsWith("sk_approve:") ? "approve" : customId.startsWith("sk_cancel:") ? "cancel" : "";
     const orderId = action ? customId.slice(customId.indexOf(":") + 1) : "";
-    if (!orderId || !actorId || actorId !== process.env.DISCORD_ADMIN_ID || interaction.channel_id !== process.env.DISCORD_LOG_CHANNEL_ID) return res.json({ type: 4, data: { content: "Você não tem permissão para confirmar este pedido.", flags: 64 } });
+    const hasConfirmRole = interaction.member?.roles?.includes(CONFIRM_ROLE_ID) === true;
+    const isAdmin = actorId === process.env.DISCORD_ADMIN_ID || hasConfirmRole;
+    if (!orderId || !actorId || !isAdmin || interaction.channel_id !== process.env.DISCORD_LOG_CHANNEL_ID) return res.json({ type: 4, data: { content: "Você não tem permissão para confirmar este pedido.", flags: 64 } });
     if (!interaction.application_id || !interaction.token) return res.status(400).send("missing interaction credentials");
     // Acknowledge before any database or network work (Discord allows 3 seconds).
     res.json({ type: 6 });
