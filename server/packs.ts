@@ -22,7 +22,8 @@ export async function hasApprovedPack(discordId: string, pack: PackKey) {
     const now = Date.now();
     return licenses.rows.some((license: any) => license.status === "ACTIVE" && (!license.expiresAt || new Date(license.expiresAt).getTime() > now));
   } catch {
-    return true;
+    // A database outage must not bypass a revoked or expired license.
+    return false;
   }
 }
 
