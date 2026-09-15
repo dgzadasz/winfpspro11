@@ -16,7 +16,7 @@ export default function Checkout() {
   const { plan: rawPlan } = useParams<{ plan: string }>(); const plan = rawPlan as PlanKey; const selected = plans[plan];
   useEffect(() => { track("checkout_started", plan); }, [plan]);
   const mobilePack = plan === "sensiNormal" || plan === "sensiPremium";
-  const [profile, setProfile] = useState<DeviceProfile>(() => { const device = new URLSearchParams(window.location.search).get("device"); try { const saved=JSON.parse(sessionStorage.getItem("sk-device-profile") || "null"); if(validDeviceProfile(saved)) return device ? {...saved, model: device} : saved; } catch {} return {brand:"Samsung",model:device || "",game:"Free Fire",style:"Equilibrado"}; });
+  const [profile, setProfile] = useState<DeviceProfile>(() => { const device = new URLSearchParams(window.location.search).get("device"); const brand = device?.toLowerCase().includes("iphone") ? "Apple" : device?.toLowerCase().includes("redmi") ? "Redmi" : device?.toLowerCase().includes("xiaomi") ? "Xiaomi" : device?.toLowerCase().includes("moto") ? "Motorola" : "Samsung"; try { const saved=JSON.parse(sessionStorage.getItem("sk-device-profile") || "null"); if(validDeviceProfile(saved)) return device ? {...saved, brand, model: device} : saved; } catch {} return {brand,model:device || "",game:"Free Fire",style:"Equilibrado"}; });
   useEffect(() => { try { sessionStorage.setItem("sk-device-profile",JSON.stringify(profile)); } catch {} }, [profile]);
   const [user, setUser] = useState<{ displayName: string } | null>(null); const [order, setOrder] = useState<CreatedOrder | null>(null); const [loading, setLoading] = useState(true); const [working, setWorking] = useState(false); const [message, setMessage] = useState("");
   useEffect(() => {
