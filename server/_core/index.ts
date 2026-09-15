@@ -15,7 +15,7 @@ import { PACK_FILES, hasApprovedPack, hasApprovedPremium, isPackKey } from "../p
 import { recommendSensitivity } from "../sensi-ai";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { CATALOG } from "../../shared/catalog";
+import { CATALOG, PRODUCT_DETAILS } from "../../shared/catalog";
 import { catalogProducts } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { serveStatic, setupVite } from "./vite";
@@ -41,7 +41,7 @@ async function startServer() {
   registerDiscordInteractionRoute(app);
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
   app.get("/api/payment/mode", (_req, res) => res.json({ mode: "manual", automaticGatewayConfigured: false, confirmation: "discord_admin" }));
-  const enrichCatalog = (product: any) => { const source = CATALOG.find(item => item.slug === product.slug); return source?.deviceProfiles ? { ...product, deviceProfiles: source.deviceProfiles } : product; };
+  const enrichCatalog = (product: any) => { const source = CATALOG.find(item => item.slug === product.slug); const details = PRODUCT_DETAILS[product.slug]; return { ...product, ...(source?.deviceProfiles ? { deviceProfiles: source.deviceProfiles } : {}), ...(details || {}) }; };
   app.get("/api/catalog", async (_req, res) => { try { const db = await getDb(); const products = (db ? await db.select().from(catalogProducts) : CATALOG).map(enrichCatalog); res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=120"); return res.json({ products, categories: Array.from(new Set(products.map(product => product.category))) }); } catch (error) { console.error("[Catalog] read failed", error); res.setHeader("Cache-Control", "public, max-age=15"); return res.json({ products: CATALOG, categories: Array.from(new Set(CATALOG.map(product => product.category))) }); } });
   app.get("/api/catalog/:slug", async (req, res) => { try { const db = await getDb(); const raw = db ? (await db.select().from(catalogProducts).where(eq(catalogProducts.slug, req.params.slug)).limit(1))[0] : CATALOG.find(item => item.slug === req.params.slug); const product = raw && enrichCatalog(raw); if (!product) return res.status(404).json({ error: "product_not_found" }); res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300"); return res.json({ product }); } catch (error) { console.error("[Catalog] product read failed", error); const product = CATALOG.find(item => item.slug === req.params.slug); return product ? res.json({ product }) : res.status(404).json({ error: "product_not_found" }); } });
   app.use(express.json({ limit: "50mb" }));
