@@ -53,10 +53,10 @@ function oauthError(res: Response, message: string, status = 502) {
 
 export function registerDiscordRoutes(app: Express) {
   app.get("/api/discord/login", (_req, res) => {
-    if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET || !process.env.DISCORD_GUILD_ID) return oauthError(res, "A integração Discord ainda não foi configurada.", 503);
+    if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET) return oauthError(res, "A integração Discord ainda não foi configurada.", 503);
     const state = crypto.randomBytes(32).toString("hex");
     setCookie(res, STATE_COOKIE, state, 600, true);
-    const params = new URLSearchParams({ client_id: process.env.DISCORD_CLIENT_ID, redirect_uri: redirectUri(), response_type: "code", scope: "identify guilds.members.read", state });
+    const params = new URLSearchParams({ client_id: process.env.DISCORD_CLIENT_ID, redirect_uri: redirectUri(), response_type: "code", scope: "identify", state });
     res.redirect(`https://discord.com/oauth2/authorize?${params.toString()}`);
   });
 
@@ -74,9 +74,6 @@ export function registerDiscordRoutes(app: Express) {
       const userResponse = await fetch("https://discord.com/api/v10/users/@me", { headers });
       if (!userResponse.ok) throw new Error("user lookup failed");
       const user = await userResponse.json() as { id: string; username: string; global_name?: string | null; avatar?: string | null };
-      const memberResponse = await fetch(`https://discord.com/api/v10/users/@me/guilds/${process.env.DISCORD_GUILD_ID}/member`, { headers });
-      if (memberResponse.status === 404) return res.redirect("/?discordError=not_member");
-      if (!memberResponse.ok) throw new Error("guild membership lookup failed");
       setCookie(res, SESSION_COOKIE, encodeSession({ id: user.id, username: user.username, displayName: user.global_name || user.username, avatar: user.avatar ?? null }), 7 * 24 * 60 * 60, secureCookie(req));
       const plan = checkoutPlan(req);
       clearCookie(res, "sk_checkout_plan", secureCookie(req));
