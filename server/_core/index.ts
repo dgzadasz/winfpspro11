@@ -58,7 +58,7 @@ async function startServer() {
   app.get("/api/store/licenses", async (req, res) => {
     const user = getDiscordUser(req);
     if (!user) return res.status(401).json({ error: "discord_login_required" });
-    try { const db = await getDb(); if (!db) return res.status(503).json({ error: "licenses_unavailable" }); const result = await db.execute(sql`SELECT id, order_id AS "orderId", plan, status, created_at AS "createdAt", expires_at AS "expiresAt" FROM licenses WHERE discord_id = ${user.id} ORDER BY created_at DESC`); res.setHeader("Cache-Control", "private, no-store"); return res.json({ licenses: result.rows }); } catch (error) { console.error("[Licenses] read failed", error); return res.status(503).json({ error: "licenses_unavailable" }); }
+    try { const db = await getDb(); if (!db) return res.status(503).json({ error: "licenses_unavailable" }); const admin = Boolean(process.env.DISCORD_ADMIN_ID && user.id === process.env.DISCORD_ADMIN_ID); const result = admin ? await db.execute(sql`SELECT id, order_id AS "orderId", discord_id AS "discordId", plan, status, created_at AS "createdAt", expires_at AS "expiresAt" FROM licenses ORDER BY created_at DESC LIMIT 200`) : await db.execute(sql`SELECT id, order_id AS "orderId", plan, status, created_at AS "createdAt", expires_at AS "expiresAt" FROM licenses WHERE discord_id = ${user.id} ORDER BY created_at DESC`); res.setHeader("Cache-Control", "private, no-store"); return res.json({ licenses: result.rows, isAdmin: admin }); } catch (error) { console.error("[Licenses] read failed", error); return res.status(503).json({ error: "licenses_unavailable" }); }
   });
   app.post("/api/admin/licenses/:id/revoke", async (req, res) => {
     const user = getDiscordUser(req);
