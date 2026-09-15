@@ -29,7 +29,8 @@ function clean(value: string, limit: number) {
 
 export function pixPayload(order: { id: string; plan: PlanKey }) {
   const plan = PLANS[order.plan];
-  const key = process.env.PIX_KEY || "88b1eaac-4da0-4665-a327-095cb7a86b35";
+  const key = process.env.PIX_KEY?.trim();
+  if (!key) throw new Error("PIX_KEY is not configured");
   const data = tlv("00", "01") + tlv("26", tlv("00", "BR.GOV.BCB.PIX") + tlv("01", key))
     + tlv("52", "0000") + tlv("53", "986") + tlv("54", (plan.amountCents / 100).toFixed(2))
     + tlv("58", "BR") + tlv("59", clean(process.env.PIX_NAME || "DIEGO", 25))

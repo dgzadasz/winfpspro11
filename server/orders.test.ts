@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+beforeEach(() => vi.stubEnv("PIX_KEY", "test-pix-key"));
 import { pixPayload, pixQrDataUrl, PLANS } from "./orders";
 
 describe("store orders", () => {
